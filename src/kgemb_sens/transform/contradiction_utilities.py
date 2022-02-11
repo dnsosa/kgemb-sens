@@ -5,7 +5,8 @@
 import itertools
 import numpy as np
 
-from kgemb_sens.transform.graph_utilities import *
+from src.kgemb_sens.transform.graph_utilities import prob_dist_from_list
+
 
 def find_all_valid_negations(G):
     all_valid_negations = []
@@ -21,11 +22,11 @@ def find_all_valid_negations(G):
     return all_valid_negations, all_rels
 
 
-def negative_completion(G, all_valid_negations, neg_completion_fraction):
+def negative_completion(G, all_valid_negations, neg_completion_frac):
     G_complete = G.copy()
 
     n_negations = len(all_valid_negations)
-    sampled_negations_idx = np.random.choice(n_negations, round(neg_completion_fraction * n_negations), replace=False)
+    sampled_negations_idx = np.random.choice(n_negations, round(neg_completion_frac * n_negations), replace=False)
     sampled_negations = []
     for idx in sampled_negations_idx:
         sampled_negations.append(all_valid_negations[idx])
@@ -72,7 +73,7 @@ def fill_with_contradictions(G, edge_names, val_test_subset, params, all_pairs_l
         print(probabilities)
 
         sampled_rel_edges_idx = np.random.choice(n_rel_edges,
-                                                 round(params["contradiction_fraction"] / n_edge_names * n_rel_edges),
+                                                 round(params["contradiction_frac"] / n_edge_names * n_rel_edges),
                                                  replace=False, p=probabilities)
         sampled_rel_edges = []
         for idx in sampled_rel_edges_idx:
@@ -86,7 +87,7 @@ def fill_with_contradictions(G, edge_names, val_test_subset, params, all_pairs_l
     return G_contra, sampled_rel_edges, contradictory_edges  ###, contra_keys
 
 
-def remove_contradictions(G, edge_set_1, edge_set_2, edges_not_to_remove, contra_remove_fraction):
+def remove_contradictions(G, edge_set_1, edge_set_2, edges_not_to_remove, contra_remove_frac):
     ### edges_not_to_remove_reformat = [(u,v,r['edge']) for u,v,r in edges_not_to_remove]
 
     G_contra_remove = G.copy()
@@ -95,7 +96,7 @@ def remove_contradictions(G, edge_set_1, edge_set_2, edges_not_to_remove, contra
         return None
 
     n_contras = len(edge_set_1)
-    sampled_contra_idx = np.random.choice(n_contras, round(contra_remove_fraction * n_contras), replace=False)
+    sampled_contra_idx = np.random.choice(n_contras, round(contra_remove_frac * n_contras), replace=False)
     sampled_contras = []
     print("sampled_contra_idx:")
     print(sampled_contra_idx)

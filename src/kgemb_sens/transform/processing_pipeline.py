@@ -5,8 +5,9 @@
 import networkx as nx
 import numpy as np
 
-from kgemb_sens.transform.contradiction_utilities import *
-from kgemb_sens.transform.graph_utilities import *
+from src.kgemb_sens.transform.contradiction_utilities import fill_with_contradictions, negative_completion, remove_contradictions
+from src.kgemb_sens.transform.graph_utilities import prob_dist_from_list, random_split_list
+
 
 def graph_processing_pipeline(G, i, params, all_valid_negations=None, edge_names=None, SEED=1):
     print(f"Starting iteration {i + 1}")
@@ -16,8 +17,8 @@ def graph_processing_pipeline(G, i, params, all_valid_negations=None, edge_names
     G_con_rem = None
     sparsified_subset, new_contradictions, removed_contradictions = None, None, None
 
-    if params["neg_completion_fraction"] > 0:
-        G = negative_completion(G, all_valid_negations, params["neg_completion_fraction"])
+    if params["neg_completion_frac"] > 0:
+        G = negative_completion(G, all_valid_negations, params["neg_completion_frac"])
 
     edges = list(G.edges(data=True, keys=True))
 
@@ -35,7 +36,7 @@ def graph_processing_pipeline(G, i, params, all_valid_negations=None, edge_names
 
         for idx in val_test_subset_idx:
             val_test_subset.append(edges[idx])
-        val_subset, test_subset = random_split_list(val_test_subset, params["val_fraction"])
+        val_subset, test_subset = random_split_list(val_test_subset, params["val_frac"])
 
         if params["prob_type"] == "distance":
             all_pairs_lens = dict(nx.all_pairs_bellman_ford_path_length(G.to_undirected()))
@@ -93,7 +94,7 @@ def graph_processing_pipeline(G, i, params, all_valid_negations=None, edge_names
             if params["MODE"] == "contrasparsify":
                 G_con_rem, removed_contradictions = remove_contradictions(G_con, sampled_rel_edges, contradictory_edges,
                                                                           val_test_subset,
-                                                                          params["contra_remove_fraction"])
+                                                                          params["contra_remove_frac"])
                 train_subset = list(G_con_rem.edges(data=True, keys=True))
 
         # Need to check that the nodes and relations are found in the training too
@@ -148,7 +149,7 @@ def graph_processing_pipeline(G, i, params, all_valid_negations=None, edge_names
     G_out.remove_edges_from(val_test_subset)
     G_out_train = G_out
 
-    train_conditions_id = f"{params['MODE']}_alpha{params['alpha']}_probtype{params['prob_type']}_flat{params['flatten_kg']}_sparsefrac{params['sparsified_frac']}_negCompFrac{params['neg_completion_fraction']}_contraFrac{params['contradiction_fraction']}_contraRemFrac{params['contra_remove_fraction']}_vtfrac{params['val_test_frac']}"
+    train_conditions_id = f"{params['MODE']}_alpha{params['alpha']}_probtype{params['prob_type']}_flat{params['flatten_kg']}_sparsefrac{params['sparsified_frac']}_negCompFrac{params['neg_completion_frac']}_contraFrac{params['contradiction_frac']}_contraRemFrac{params['contra_remove_frac']}_vtfrac{params['val_test_frac']}"
 
     new_test_path = f"{out_dir}/test_{train_conditions_id}.tsv"
     G_out_test_df = nx.to_pandas_edgelist(G_out_test)[['source', 'edge', 'target']]

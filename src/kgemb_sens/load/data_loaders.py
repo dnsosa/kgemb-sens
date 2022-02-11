@@ -5,8 +5,11 @@
 import pandas as pd
 import networkx as nx
 
+# local data dir
+##data_dir="/Users/dnsosa/.data/pykeen/datasets"
 
-def load_data_three_parts(dataset, data_dir="/Users/dnsosa/.data/pykeen/datasets"):
+
+def load_data_three_parts(dataset, data_dir="/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"):
     base_dir = f"{data_dir}/{dataset}"
 
     # Old train/val/test split

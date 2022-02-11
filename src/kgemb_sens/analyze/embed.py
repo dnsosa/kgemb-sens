@@ -29,6 +29,7 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id):
 
     model = result.model
     # tf = model.triples_factory
+    run_id = f"{train_conditions_id}_model{params['model_name']}"
 
     results_dict = {'Dataset': params["dataset"],
                     'Model_name': params["model_name"],
@@ -38,7 +39,7 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id):
                     # 'Val_test_subset_idx': str(val_test_subset_idx),
                     'Num_epochs': params["n_epochs"],
                     'Run': i,
-                    'Run_ID': f"{train_conditions_id}_model{params['model_name']}",
+                    'Run_ID': run_id,
                     'AMRI': result.metric_results.get_metric('adjusted_mean_rank_index'),
                     'Hits@1': result.metric_results.get_metric('hits@1'),
                     'Hits@3': result.metric_results.get_metric('hits@3'),
@@ -47,4 +48,4 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id):
                     'MR': result.metric_results.get_metric('mean_rank'),
                     'MRR': result.metric_results.get_metric('mean_reciprocal_rank')}
 
-    return results_dict
+    return results_dict, run_id
