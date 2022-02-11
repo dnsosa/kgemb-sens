@@ -1,0 +1,110 @@
+# -*- coding: utf-8 -*-
+
+"""Utilities for contradiction-based perturbations of KG."""
+
+import itertools
+import numpy as np
+
+from kgemb_sens.transform.graph_utilities import *
+
+def find_all_valid_negations(G):
+    all_valid_negations = []
+    all_rels = set([r for _, _, r in G.edges(data='edge')])  # NOTE DOING FOR ALL RELS
+
+    for pair in itertools.permutations(G.nodes(), 2):
+        for edge_name in all_rels:
+            candidate_edge = (pair[0], pair[1], edge_name)
+            if candidate_edge not in G.edges(data='edge'):
+                negated_edge = (pair[0], pair[1], f"NOT-{edge_name}")
+                all_valid_negations.append(negated_edge)
+
+    return all_valid_negations, all_rels
+
+
+def negative_completion(G, all_valid_negations, neg_completion_fraction):
+    G_complete = G.copy()
+
+    n_negations = len(all_valid_negations)
+    sampled_negations_idx = np.random.choice(n_negations, round(neg_completion_fraction * n_negations), replace=False)
+    sampled_negations = []
+    for idx in sampled_negations_idx:
+        sampled_negations.append(all_valid_negations[idx])
+
+    G_complete.add_edges_from([(u, v, {'edge': r}) for u, v, r in sampled_negations])  # Let it fill in the key?
+
+    return G_complete
+
+
+def generate_converse_edges_from(edge_list):
+    out_list = []
+    for e in edge_list:
+        if e[3]['edge'].startswith("NOT-"):
+            converse_relation = e[3]['edge'].split("NOT-")[1]
+        else:
+            converse_relation = f"NOT-{e[3]['edge']}"
+        converse_edge = (e[0], e[1], None, {'edge': converse_relation})
+        out_list.append(converse_edge)
+
+    return out_list
+
+
+def fill_with_contradictions(G, edge_names, val_test_subset, params, all_pairs_lens=None, degree_dict=None):
+    G_contra = G.copy()
+    n_edge_names = len(edge_names)
+    for edge_name in edge_names:
+        rel_edges = [e for e in G_contra.edges(data=True, keys=True) if e[3]['edge'] == edge_name]
+        n_rel_edges = len(rel_edges)
+
+        if params["prob_type"] == "distance":
+            probabilities = prob_dist_from_list(val_test_subset,
+                                                rel_edges,
+                                                dist_mat=all_pairs_lens,
+                                                prob_type="distance",
+                                                alpha=params["alpha"])
+        elif params["prob_type"] == "degree":
+            probabilities = prob_dist_from_list(val_test_subset,
+                                                rel_edges,
+                                                degree_dict=degree_dict,
+                                                prob_type="degree",
+                                                graph=G_contra,
+                                                alpha=params["alpha"])
+        print(n_rel_edges)
+        print(probabilities)
+
+        sampled_rel_edges_idx = np.random.choice(n_rel_edges,
+                                                 round(params["contradiction_fraction"] / n_edge_names * n_rel_edges),
+                                                 replace=False, p=probabilities)
+        sampled_rel_edges = []
+        for idx in sampled_rel_edges_idx:
+            sampled_rel_edges.append(rel_edges[idx])
+
+        contradictory_edges = generate_converse_edges_from(sampled_rel_edges)
+
+        contra_keys = G_contra.add_edges_from(contradictory_edges)  # TEST!
+        contradictory_edges = [(u, v, contra_keys[i], r) for i, (u, v, _, r) in enumerate(contradictory_edges)]
+
+    return G_contra, sampled_rel_edges, contradictory_edges  ###, contra_keys
+
+
+def remove_contradictions(G, edge_set_1, edge_set_2, edges_not_to_remove, contra_remove_fraction):
+    ### edges_not_to_remove_reformat = [(u,v,r['edge']) for u,v,r in edges_not_to_remove]
+
+    G_contra_remove = G.copy()
+    if len(edge_set_1) != len(edge_set_2):
+        print("Different sized edge sets!! Something went wrong?")
+        return None
+
+    n_contras = len(edge_set_1)
+    sampled_contra_idx = np.random.choice(n_contras, round(contra_remove_fraction * n_contras), replace=False)
+    sampled_contras = []
+    print("sampled_contra_idx:")
+    print(sampled_contra_idx)
+    for idx in sampled_contra_idx:
+        if edge_set_1[idx] not in edges_not_to_remove:
+            sampled_contras.append(edge_set_1[idx])
+        if edge_set_2[idx] not in edges_not_to_remove:
+            sampled_contras.append(edge_set_2[idx])
+
+    G_contra_remove.remove_edges_from(sampled_contras)
+
+    return G_contra_remove, sampled_contras
