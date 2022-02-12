@@ -16,7 +16,7 @@ from src.kgemb_sens.analyze.embed import run_embed_pipeline
 
 # TODO Fill this all in
 @click.command()
-@click.option('--out_dir', 'out_dir')
+@click.option('--output_folder', 'out_dir')
 @click.option('--data_dir', 'data_dir', default="/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets")
 @click.option('--dataset', 'dataset', default='nations')
 @click.option('--val_test_frac', 'val_test_frac', default=1)
