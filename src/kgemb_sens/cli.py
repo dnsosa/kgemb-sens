@@ -17,6 +17,7 @@ from src.kgemb_sens.analyze.embed import run_embed_pipeline
 # TODO Fill this all in
 @click.command()
 @click.option('--out_dir', 'out_dir')
+@click.option('--data_dir', 'data_dir', default="/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets")
 @click.option('--dataset', 'dataset', default='nations')
 @click.option('--val_test_frac', 'val_test_frac', default=1)
 @click.option('--val_frac', 'val_frac', default=0)
@@ -30,9 +31,9 @@ from src.kgemb_sens.analyze.embed import run_embed_pipeline
 @click.option('--contra_remove_frac', 'contra_remove_frac', default=0)
 @click.option('--MODE', 'MODE', default='contrasparsify')
 @click.option('--model_name', 'model_name', default='transe')
-@click.option('--neg_completion_frac', 'neg_completion_frac', default='0')
+@click.option('--neg_completion_frac', 'neg_completion_frac', default=0)
 @click.option('--n_epochs', 'n_epochs', default=200)
-def main(out_dir, dataset, val_test_frac, val_frac, sparsified_frac, alpha, n_resample, prob_type, flatten_kg,
+def main(out_dir, data_dir, dataset, val_test_frac, val_frac, sparsified_frac, alpha, n_resample, prob_type, flatten_kg,
          neg_completion_frac, contradiction_frac, contra_remove_frac, MODE, model_name, n_epochs):
     """Run main function."""
 
@@ -56,7 +57,7 @@ def main(out_dir, dataset, val_test_frac, val_frac, sparsified_frac, alpha, n_re
               "model_name": model_name,
               "n_epochs": n_epochs}
 
-    G = load_data_three_parts(dataset)
+    G = load_data_three_parts(dataset, data_dir)
     all_valid_negations = []
 
     if MODE in ["contradictification", "contrasparsify"]:
@@ -68,6 +69,7 @@ def main(out_dir, dataset, val_test_frac, val_frac, sparsified_frac, alpha, n_re
         data_paths, train_conditions_id, edge_divisions = graph_processing_pipeline(G,
                                                                                     i,
                                                                                     params,
+                                                                                    out_dir,
                                                                                     all_valid_negations,
                                                                                     all_rels,
                                                                                     SEED)
@@ -92,3 +94,8 @@ def main(out_dir, dataset, val_test_frac, val_frac, sparsified_frac, alpha, n_re
 
 if __name__ == '__main__':
     main()
+
+
+
+##python -m kgemb_sens --out_dir /Users/dnsosa/Desktop/AltmanLab/KGEmbSensitivity/test_out \
+##    --data_dir /Users/dnsosa/.data/pykeen/datasets

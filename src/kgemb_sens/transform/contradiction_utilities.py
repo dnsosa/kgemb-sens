@@ -69,8 +69,6 @@ def fill_with_contradictions(G, edge_names, val_test_subset, params, all_pairs_l
                                                 prob_type="degree",
                                                 graph=G_contra,
                                                 alpha=params["alpha"])
-        print(n_rel_edges)
-        print(probabilities)
 
         sampled_rel_edges_idx = np.random.choice(n_rel_edges,
                                                  round(params["contradiction_frac"] / n_edge_names * n_rel_edges),
@@ -98,8 +96,6 @@ def remove_contradictions(G, edge_set_1, edge_set_2, edges_not_to_remove, contra
     n_contras = len(edge_set_1)
     sampled_contra_idx = np.random.choice(n_contras, round(contra_remove_frac * n_contras), replace=False)
     sampled_contras = []
-    print("sampled_contra_idx:")
-    print(sampled_contra_idx)
     for idx in sampled_contra_idx:
         if edge_set_1[idx] not in edges_not_to_remove:
             sampled_contras.append(edge_set_1[idx])

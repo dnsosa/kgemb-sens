@@ -9,7 +9,7 @@ from src.kgemb_sens.transform.contradiction_utilities import fill_with_contradic
 from src.kgemb_sens.transform.graph_utilities import prob_dist_from_list, random_split_list
 
 
-def graph_processing_pipeline(G, i, params, all_valid_negations=None, edge_names=None, SEED=1):
+def graph_processing_pipeline(G, i, params, out_dir, all_valid_negations=None, edge_names=None, SEED=1):
     print(f"Starting iteration {i + 1}")
     c = 1
     found_one = False
