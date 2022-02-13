@@ -8,10 +8,10 @@ import click
 import numpy as np
 import pandas as pd
 
-from src.kgemb_sens.load.data_loaders import load_data_three_parts
-from src.kgemb_sens.transform.contradiction_utilities import find_all_valid_negations
-from src.kgemb_sens.transform.processing_pipeline import graph_processing_pipeline
-from src.kgemb_sens.analyze.embed import run_embed_pipeline
+from kgemb_sens.load.data_loaders import load_data_three_parts
+from kgemb_sens.transform.contradiction_utilities import find_all_valid_negations
+from kgemb_sens.transform.processing_pipeline import graph_processing_pipeline
+from kgemb_sens.analyze.embed import run_embed_pipeline
 
 
 # TODO Fill this all in

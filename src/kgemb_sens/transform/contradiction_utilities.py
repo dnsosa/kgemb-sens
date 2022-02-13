@@ -5,7 +5,7 @@
 import itertools
 import numpy as np
 
-from src.kgemb_sens.transform.graph_utilities import prob_dist_from_list
+from kgemb_sens.transform.graph_utilities import prob_dist_from_list
 
 
 def find_all_valid_negations(G):

@@ -5,8 +5,8 @@
 import networkx as nx
 import numpy as np
 
-from src.kgemb_sens.transform.contradiction_utilities import fill_with_contradictions, negative_completion, remove_contradictions
-from src.kgemb_sens.transform.graph_utilities import prob_dist_from_list, random_split_list
+from kgemb_sens.transform.contradiction_utilities import fill_with_contradictions, negative_completion, remove_contradictions
+from kgemb_sens.transform.graph_utilities import prob_dist_from_list, random_split_list
 
 
 def graph_processing_pipeline(G, i, params, out_dir, all_valid_negations=None, edge_names=None, SEED=1):
