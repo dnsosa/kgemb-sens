@@ -59,6 +59,7 @@ def main(out_dir, data_dir, dataset, val_test_frac, val_frac, sparsified_frac, a
 
     G = load_data_three_parts(dataset, data_dir)
     all_valid_negations = []
+    all_rels = None
 
     if MODE in ["contradictification", "contrasparsify"]:
         all_valid_negations, all_rels = find_all_valid_negations(G)
