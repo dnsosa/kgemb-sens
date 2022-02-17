@@ -8,17 +8,20 @@ import click
 import numpy as np
 import pandas as pd
 
-from kgemb_sens.load.data_loaders import load_data_three_parts
+from kgemb_sens.load.data_loaders import load_benchmark_data_three_parts, load_drkg_data
 from kgemb_sens.transform.contradiction_utilities import find_all_valid_negations
 from kgemb_sens.transform.processing_pipeline import graph_processing_pipeline
 from kgemb_sens.analyze.embed import run_embed_pipeline
 
+DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
 
 # TODO Fill this all in
 @click.command()
 @click.option('--output_folder', 'out_dir')
-@click.option('--data_dir', 'data_dir', default="/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets")
+@click.option('--data_dir', 'data_dir', default=DATA_DIR)
 @click.option('--dataset', 'dataset', default='nations')
+@click.option('--pcnet_filter/--no-pcnet_filter', 'pcnet_filter', default=False)
+@click.option('--pcnet_dir', 'pcnet_dir', default=DATA_DIR)
 @click.option('--val_test_frac', 'val_test_frac', default=1.0)
 @click.option('--val_frac', 'val_frac', default=0.0)
 @click.option('--sparsified_frac', 'sparsified_frac', default=0.0)
@@ -33,7 +36,7 @@ from kgemb_sens.analyze.embed import run_embed_pipeline
 @click.option('--model_name', 'model_name', default='transe')
 @click.option('--neg_completion_frac', 'neg_completion_frac', default=0.0)
 @click.option('--n_epochs', 'n_epochs', default=200)
-def main(out_dir, data_dir, dataset, val_test_frac, val_frac, sparsified_frac, alpha, n_resample, prob_type, flatten_kg,
+def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val_frac, sparsified_frac, alpha, n_resample, prob_type, flatten_kg,
          neg_completion_frac, contradiction_frac, contra_remove_frac, MODE, model_name, n_epochs):
     """Run main function."""
 
@@ -57,16 +60,26 @@ def main(out_dir, data_dir, dataset, val_test_frac, val_frac, sparsified_frac, a
               "model_name": model_name,
               "n_epochs": n_epochs}
 
-    G = load_data_three_parts(dataset, data_dir)
+    # LOAD DATA
+    print("Loading data...")
+    if dataset in ["nations", "umls", "countries", "kinships"]:
+        G = load_benchmark_data_three_parts(dataset, data_dir)
+    elif dataset in ["gnbr_gg", "gnbr_drdz", "gnbr_drg", "drugbank_drdz", "drugbank_drg", "string_gg"]:
+        G = load_drkg_data(dataset, data_dir, pcnet_filter, pcnet_dir)
+    print("\n\nData load and network creation complete.\n\n")
     all_valid_negations = []
     all_rels = None
 
-    if MODE in ["contradictification", "contrasparsify"]:
+    if (MODE in ["contradictification", "contrasparsify"]) and (neg_completion_frac > 0):
+        print("\n\nFinding all valid negations\n\n")
         all_valid_negations, all_rels = find_all_valid_negations(G)
+        print("All valid negations found.")
 
     all_results_list = []
 
+    print("\n\nBeginning graph processing pipeline...")
     for i in range(params["n_resample"]):
+        print(f"Sample {i}\n")
         data_paths, train_conditions_id, edge_divisions = graph_processing_pipeline(G,
                                                                                     i,
                                                                                     params,
@@ -75,8 +88,10 @@ def main(out_dir, data_dir, dataset, val_test_frac, val_frac, sparsified_frac, a
                                                                                     all_rels,
                                                                                     SEED)
         train_subset, test_subset, sparse_subset, new_contradictions, removed_contradictions = edge_divisions
+        print("Now embedding results...")
         results_dict, run_id = run_embed_pipeline(data_paths, i, params, train_conditions_id)
 
+        print("\nDone embedding.\n")
         all_results_list.append(results_dict)
 
     # plot_graph_nice(GTest,
@@ -85,6 +100,8 @@ def main(out_dir, data_dir, dataset, val_test_frac, val_frac, sparsified_frac, a
     #                 sparse_subset=sparse_subset,
     #                 new_contradictions=new_contradictions,
     #                 removed_contradictions=removed_contradictions)
+
+    print("\nFinished with all resamples!")
 
     save_dir = f"{out_dir}/results/{run_id}/"  # this directory
     os.makedirs(save_dir, exist_ok=True)
