@@ -32,10 +32,14 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id):
     run_id = f"{train_conditions_id}_model{params['model_name']}"
 
     results_dict = {'Dataset': params["dataset"],
+                    'PCNet_filter': params["pcnet_filter"],
                     'Model_name': params["model_name"],
                     'Sparsified_frac': params["sparsified_frac"],
                     'Alpha': params["alpha"],
-                    'Val_test_frac': params["val_test_frac"],
+                    'Neg_Completion_Frac': params["neg_completion_frac"],
+                    'Contradiction_Frac': params["contradiction_frac"],
+                    'Contra_Remove_Frac': params["contra_remove_frac"],
+                    'MODE': params["MODE"],
                     # 'Val_test_subset_idx': str(val_test_subset_idx),
                     'Num_epochs': params["n_epochs"],
                     'Run': i,
