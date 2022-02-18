@@ -26,7 +26,7 @@ def negative_completion(G, all_valid_negations, neg_completion_frac):
     G_complete = G.copy()
 
     n_negations = len(all_valid_negations)
-    sampled_negations_idx = np.random.choice(n_negations, round(neg_completion_frac * n_negations), replace=False)
+    sampled_negations_idx = np.random.choice(n_negations, min(round(neg_completion_frac * G.number_of_edges()), n_negations), replace=False)
     sampled_negations = []
     for idx in sampled_negations_idx:
         sampled_negations.append(all_valid_negations[idx])
