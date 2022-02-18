@@ -77,12 +77,10 @@ def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCN
     print(f"Found the following relationship types when filtering to {dataset}: {set(filtered_df.edge)}.")
     filtered_df = filtered_df[['source', 'edge', 'target']]
 
-    print(pcnet_filter)
-    print(query_entity_types)
     if pcnet_filter and query_entity_types == "Gene:Gene":
 
-        filtered_df[['source_entrez']] = filtered_df.source.str.split('::', expand=True)[1]
-        filtered_df[['target_entrez']] = filtered_df.target.str.split('::', expand=True)[1]
+        filtered_df['source_entrez'] = filtered_df.source.str.split('::', expand=True)[1]
+        filtered_df['target_entrez'] = filtered_df.target.str.split('::', expand=True)[1]
 
         def generate_merge_id(x):
             sorted_id = sorted([x["source_entrez"], x["target_entrez"]])
@@ -91,15 +89,12 @@ def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCN
 
         filtered_df["merge_id"] = filtered_df.apply(generate_merge_id, axis=1)
         # TODO: include the code here that reformats the pcnet file. Explain the cx to sif step.
-        ### "/Users/dnsosa/Downloads/pcnet_reformatted_df.csv"
+        # "/Users/dnsosa/Downloads/pcnet_reformatted_df.csv"
         pcnet_df = pd.read_csv(f"{pcnet_dir}/pcnet_reformatted_df.csv")
-
 
         filtered_df = filtered_df.merge(pcnet_df, how='inner', on='merge_id', sort=True)[["source_entrez_x", "edge_x", "target_entrez_x"]]
         print(f"After including only pairs in PCnet--size of {dataset}: {len(filtered_df)} edges.")
         filtered_df.columns = ['source', 'edge', 'target']
-        print(filtered_df.head())
-
 
     G = nx.from_pandas_edgelist(filtered_df, "source", "target", edge_attr=True, create_using=nx.MultiDiGraph())
 
