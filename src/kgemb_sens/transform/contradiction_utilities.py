@@ -19,7 +19,7 @@ def find_all_valid_negations(G):
                 negated_edge = (pair[0], pair[1], f"NOT-{edge_name}")
                 all_valid_negations.append(negated_edge)
 
-    return all_valid_negations, all_rels
+    return all_valid_negations
 
 
 def negative_completion(G, all_valid_negations, neg_completion_frac):

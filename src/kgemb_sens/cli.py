@@ -68,14 +68,17 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
         G = load_drkg_data(dataset, data_dir, pcnet_filter, pcnet_dir)
     print("\n\nData load and network creation complete.\n\n")
     all_valid_negations = []
-    all_rels = None
+    all_rels = set([r for _, _, r in G.edges(data='edge')])
 
     if (MODE in ["contradictification", "contrasparsify"]) and (neg_completion_frac > 0):
         print("\n\nFinding all valid negations\n\n")
-        all_valid_negations, all_rels = find_all_valid_negations(G)
+        all_valid_negations = find_all_valid_negations(G)
         print("All valid negations found.")
 
     all_results_list = []
+
+    # TODO: Pre-compute distance matrix only once?
+    # TODO: Only compute distance matrix if alpha != 0
 
     print("\n\nBeginning graph processing pipeline...")
     for i in range(params["n_resample"]):
