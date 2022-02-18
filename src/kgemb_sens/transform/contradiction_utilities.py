@@ -51,7 +51,10 @@ def generate_converse_edges_from(edge_list):
 
 def fill_with_contradictions(G, edge_names, val_test_subset, params, all_pairs_lens=None, degree_dict=None):
     G_contra = G.copy()
-    n_edge_names = len(edge_names)
+
+    all_sampled_rel_edges = []
+    all_contradictory_edges = []
+
     for edge_name in edge_names:
         rel_edges = [e for e in G_contra.edges(data=True, keys=True) if e[3]['edge'] == edge_name]
         n_rel_edges = len(rel_edges)
@@ -69,20 +72,23 @@ def fill_with_contradictions(G, edge_names, val_test_subset, params, all_pairs_l
                                                 prob_type="degree",
                                                 graph=G_contra,
                                                 alpha=params["alpha"])
-
+        nz_probs = np.count_nonzero(probabilities)
+        # print(f"For edge_name: {edge_name}, # of non-zeros probs found: {np.count_nonzero(probabilities)}. Requesting: {round(params['contradiction_frac'] * n_rel_edges)}")
         sampled_rel_edges_idx = np.random.choice(n_rel_edges,
-                                                 round(params["contradiction_frac"] / n_edge_names * n_rel_edges),
+                                                 min(round(params["contradiction_frac"] * n_rel_edges), nz_probs),
                                                  replace=False, p=probabilities)
         sampled_rel_edges = []
         for idx in sampled_rel_edges_idx:
             sampled_rel_edges.append(rel_edges[idx])
 
         contradictory_edges = generate_converse_edges_from(sampled_rel_edges)
-
         contra_keys = G_contra.add_edges_from(contradictory_edges)  # TEST!
         contradictory_edges = [(u, v, contra_keys[i], r) for i, (u, v, _, r) in enumerate(contradictory_edges)]
 
-    return G_contra, sampled_rel_edges, contradictory_edges  ###, contra_keys
+        all_sampled_rel_edges += sampled_rel_edges
+        all_contradictory_edges += contradictory_edges
+
+    return G_contra, all_sampled_rel_edges, all_contradictory_edges  ###, contra_keys
 
 
 def remove_contradictions(G, edge_set_1, edge_set_2, edges_not_to_remove, contra_remove_frac):

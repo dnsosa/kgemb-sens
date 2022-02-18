@@ -18,7 +18,10 @@ def graph_processing_pipeline(G, i, params, out_dir, all_valid_negations=None, e
     sparsified_subset, new_contradictions, removed_contradictions = None, None, None
 
     if params["neg_completion_frac"] > 0:
+        print("negative completion path")
+        print(f"Before neg comp: {G.number_of_edges()}")
         G = negative_completion(G, all_valid_negations, params["neg_completion_frac"])
+        print(f"AFTER neg comp: {G.number_of_edges()}")
 
     edges = list(G.edges(data=True, keys=True))
 
@@ -165,6 +168,5 @@ def graph_processing_pipeline(G, i, params, out_dir, all_valid_negations=None, e
 
     ##return [new_train_path, new_val_path, new_test_path]
 
-    return (new_train_path, new_test_path), train_conditions_id, (
-    train_subset, test_subset, sparsified_subset, new_contradictions, removed_contradictions)
+    return (new_train_path, new_test_path), train_conditions_id, (train_subset, test_subset, sparsified_subset, new_contradictions, removed_contradictions), G_con
 

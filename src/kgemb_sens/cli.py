@@ -27,7 +27,7 @@ DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/dataset
 @click.option('--sparsified_frac', 'sparsified_frac', default=0.0)
 @click.option('--alpha', 'alpha', default=0.0)
 @click.option('--n_resample', 'n_resample', default=100)
-@click.option('--prob_type', 'prob_type', default='distance')
+@click.option('--prob_type', 'prob_type', default='degree')
 @click.option('--flatten_kg', 'flatten_kg', default=False)
 @click.option('--neg_completion_frac', 'neg_completion_frac', default=0.0)
 @click.option('--contradiction_frac', 'contradiction_frac', default=0.1)
@@ -85,13 +85,13 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
     print("\n\nBeginning graph processing pipeline...")
     for i in range(params["n_resample"]):
         print(f"Sample {i}\n")
-        data_paths, train_conditions_id, edge_divisions = graph_processing_pipeline(G,
-                                                                                    i,
-                                                                                    params,
-                                                                                    out_dir,
-                                                                                    all_valid_negations,
-                                                                                    all_rels,
-                                                                                    SEED)
+        data_paths, train_conditions_id, edge_divisions, G_con = graph_processing_pipeline(G,
+                                                                                            i,
+                                                                                            params,
+                                                                                            out_dir,
+                                                                                            all_valid_negations,
+                                                                                            all_rels,
+                                                                                            SEED)
         train_subset, test_subset, sparse_subset, new_contradictions, removed_contradictions = edge_divisions
         print("Now embedding results...")
         results_dict, run_id = run_embed_pipeline(data_paths, i, params, train_conditions_id)
