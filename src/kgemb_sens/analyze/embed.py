@@ -37,6 +37,7 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id):
                     'Sparsified_frac': params["sparsified_frac"],
                     'Alpha': params["alpha"],
                     'Prob_type': params["prob_type"],
+                    'Flatten_kg': params["flatten_kg"],
                     'Neg_Completion_Frac': params["neg_completion_frac"],
                     'Contradiction_Frac': params["contradiction_frac"],
                     'Contra_Remove_Frac': params["contra_remove_frac"],
