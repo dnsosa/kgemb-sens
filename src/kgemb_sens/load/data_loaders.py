@@ -75,7 +75,7 @@ def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCN
         print("Not a valid dataset name (unrecognized entity types)!!")
         return None
 
-    filtered_df = drkg_df[drkg_df.kg == dataset_name][drkg_df.entity_types == query_entity_types].reset_index()
+    filtered_df = drkg_df[(drkg_df.kg == dataset_name) & (drkg_df.entity_types == query_entity_types)].reset_index()
     print(f"Size of {dataset}: {len(filtered_df)} edges.")
     print(f"Found the following relationship types when filtering to {dataset}: {set(filtered_df.edge)}.")
     filtered_df = filtered_df[['source', 'edge', 'target']]
