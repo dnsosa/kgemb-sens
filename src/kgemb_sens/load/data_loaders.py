@@ -37,7 +37,10 @@ def load_benchmark_data_three_parts(dataset, data_dir=DATA_DIR):
 
     G_test = nx.from_pandas_edgelist(test_df, "source", "target", edge_attr=True, create_using=nx.MultiDiGraph())
 
-    G = nx.compose_all([G_train, G_val, G_test])
+    # NOTE: compose_all function was error-prone
+    combined_edge_list = list(G_train.edges(data=True)) + list(G_val.edges(data=True)) + list(G_test.edges(data=True))
+
+    G = nx.MultiDiGraph(combined_edge_list)
 
     return G
 

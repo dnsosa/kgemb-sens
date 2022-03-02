@@ -120,5 +120,4 @@ if __name__ == '__main__':
 
 
 
-##python -m kgemb_sens --out_dir /Users/dnsosa/Desktop/AltmanLab/KGEmbSensitivity/test_out \
-##    --data_dir /Users/dnsosa/.data/pykeen/datasets
+#python -m kgemb_sens --output_folder /Users/dnsosa/Desktop/AltmanLab/KGEmbSensitivity/test_out --data_dir /Users/dnsosa/.data/pykeen/datasets

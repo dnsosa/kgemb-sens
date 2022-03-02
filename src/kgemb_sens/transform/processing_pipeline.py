@@ -145,6 +145,8 @@ def graph_processing_pipeline(G, i, params, out_dir, all_valid_negations=None, e
     if params["MODE"] == "sparsification":
         G_out.remove_edges_from(sparsified_subset)
 
+    G_sparse = G_out.copy()
+
     G_out_test = nx.MultiDiGraph()
     G_out_test.add_edges_from(test_subset)
     ##G_out_val = nx.MultiDiGraph()
@@ -168,5 +170,5 @@ def graph_processing_pipeline(G, i, params, out_dir, all_valid_negations=None, e
 
     ##return [new_train_path, new_val_path, new_test_path]
 
-    return (new_train_path, new_test_path), train_conditions_id, (train_subset, test_subset, sparsified_subset, new_contradictions, removed_contradictions), G_con
+    return (new_train_path, new_test_path), train_conditions_id, (train_subset, test_subset, sparsified_subset, new_contradictions, removed_contradictions), G_sparse, G_con
 
