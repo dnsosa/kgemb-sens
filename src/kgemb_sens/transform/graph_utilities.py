@@ -2,14 +2,29 @@
 
 """Utilities (helper functions) for KG processing pipeline, which entails manipulating KGs."""
 import random
+import networkx as nx
 import numpy as np
 
 
-def edge_dist(e1, e2, dist_mat):
-    if e1 == e2:
-        return 0
+def undirect_multidigraph(G):
+    # NOTE: This function is needed because of weird behavior of the .to_undirected() method in Networkx. e.g. if I have
+    # a network with (0, 1, "r1"), (0, 1, "r2"), (1, 0, "r1"); to_undirected() would convert this to two edges, not
+    # three. Check documentation, it's bad: https://networkx.org/documentation/stable/reference/classes/generated/networkx.MultiDiGraph.to_undirected.html#networkx.MultiDiGraph.to_undirected
+    G_undir = nx.MultiGraph()
+    G_undir.add_edges_from(G.edges(data=True))
+    return G_undir
 
+
+def edge_dist(e1, e2, dist_mat):
+    # TODO: Check that the edge is in the graph
     n11, n12, n21, n22 = e1[0], e1[1], e2[0], e2[1]
+
+    if ((n11, n12) == (n21, n22)) or ((n11, n12) == (n22, n21)):
+        # Connected between same pair of nodes but different relation types,
+        if ((len(e1) >= 3) and (len(e2) >= 3)) and (e1[2] != e2[2]):
+            return 1
+        else:
+            return 0
 
     # Handle the case if they're in different components
     if n22 not in dist_mat[n11]:
@@ -21,7 +36,15 @@ def edge_dist(e1, e2, dist_mat):
 
 
 def edge_degree(G, e, degree_dict):
-    return (degree_dict[e[0]] - 1) + (degree_dict[e[1]] - G.number_of_edges(e[0], e[1]))
+    # TODO: Check that the edge is in the graph
+    # NOTE: Ignores directionality
+    # NOTE: Assumes the edge is in the graph
+
+    print(degree_dict)
+    print(G.to_undirected().number_of_edges(e[0], e[1]))
+    print(degree_dict[e[0]])
+    print(degree_dict[e[1]])
+    return (degree_dict[e[0]] - 1) + (degree_dict[e[1]] - undirect_multidigraph(G).number_of_edges(e[0], e[1]))
 
 
 def prob_dist(edge,

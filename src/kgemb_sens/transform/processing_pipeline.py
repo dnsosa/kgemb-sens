@@ -6,7 +6,7 @@ import networkx as nx
 import numpy as np
 
 from kgemb_sens.transform.contradiction_utilities import fill_with_contradictions, negative_completion, remove_contradictions
-from kgemb_sens.transform.graph_utilities import prob_dist_from_list, random_split_list
+from kgemb_sens.transform.graph_utilities import prob_dist_from_list, random_split_list, undirect_multidigraph
 
 
 def graph_processing_pipeline(G, i, params, out_dir, all_valid_negations=None, edge_names=None, SEED=1):
@@ -42,7 +42,7 @@ def graph_processing_pipeline(G, i, params, out_dir, all_valid_negations=None, e
         val_subset, test_subset = random_split_list(val_test_subset, params["val_frac"])
 
         if params["prob_type"] == "distance":
-            all_pairs_lens = dict(nx.all_pairs_bellman_ford_path_length(G.to_undirected()))
+            all_pairs_lens = dict(nx.all_pairs_bellman_ford_path_length(nx.Graph(undirect_multidigraph(G))))
             probabilities = prob_dist_from_list(val_test_subset,
                                                 edges,
                                                 dist_mat=all_pairs_lens,
@@ -52,10 +52,10 @@ def graph_processing_pipeline(G, i, params, out_dir, all_valid_negations=None, e
 
         elif params["prob_type"] == "degree":
             if params["flatten_kg"] == "True":
-                G_flat = nx.Graph(G.to_undirected())
-                degree_dict = dict(G_flat.degree)
+                G_flat = nx.Graph(undirect_multidigraph(G))
+                degree_dict = dict(G_flat.degree())
             else:
-                degree_dict = dict(G.degree)
+                degree_dict = dict(G.degree())
 
             probabilities = prob_dist_from_list(val_test_subset,
                                                 edges,

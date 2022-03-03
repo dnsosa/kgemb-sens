@@ -2,7 +2,6 @@
 
 # -*- coding: utf-8 -*-
 
-import os
 import unittest
 
 from kgemb_sens.load.data_loaders import load_benchmark_data_three_parts, load_drkg_data
@@ -38,6 +37,7 @@ class TestDataLoaders(unittest.TestCase):
         self.assertEqual(G_kinships.number_of_nodes(), 104)
         self.assertEqual(len(get_all_rels(G_kinships)), 25)
 
+    @unittest.skip("Takes a while to load, don't need to test all the time")
     def test_load_drkg_data(self):
         """Test that the biological networks datasets load as expected."""
 
