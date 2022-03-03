@@ -19,31 +19,31 @@ def edge_dist(e1, e2, dist_mat):
     # TODO: Check that the edge is in the graph
     n11, n12, n21, n22 = e1[0], e1[1], e2[0], e2[1]
 
-    if ((n11, n12) == (n21, n22)) or ((n11, n12) == (n22, n21)):
-        # Connected between same pair of nodes but different relation types,
-        if ((len(e1) >= 3) and (len(e2) >= 3)) and (e1[2] != e2[2]):
-            return 1
-        else:
-            return 0
-
     # Handle the case if they're in different components
     if n22 not in dist_mat[n11]:
         return float("inf")
 
-    d1121, d1122, d1221, d1222 = dist_mat[n11][n21] + 1, dist_mat[n11][n22] + 1, dist_mat[n12][n21] + 1, dist_mat[n12][
-        n22] + 1
-    return min(d1121, d1122, d1221, d1222)
+    # Handle the 2 and 3-tuple (undir net vs KG) cases differently
+    # If the nodes in the two edges are the same, then they're identical edges in a simple undirected net
+    if (len(e1) == 2) and (len(e2) == 2):
+        if ((n11, n12) == (n21, n22)) or (n11, n12) == (n22, n21):
+            return 0
+    # If the two edges are exactly the same (same rel type), then can be equal to 0
+    elif (len(e1) >= 3) and (len(e2) >= 3):
+        if e1 == e2:
+            return 0
+    else:
+        assert "Edges of different lengths trying to be compared!"
+        return None
+
+    d1121, d1122, d1221, d1222 = dist_mat[n11][n21], dist_mat[n11][n22], dist_mat[n12][n21], dist_mat[n12][n22]
+    return min(d1121, d1122, d1221, d1222) + 1
 
 
 def edge_degree(G, e, degree_dict):
     # TODO: Check that the edge is in the graph
     # NOTE: Ignores directionality
     # NOTE: Assumes the edge is in the graph
-
-    print(degree_dict)
-    print(G.to_undirected().number_of_edges(e[0], e[1]))
-    print(degree_dict[e[0]])
-    print(degree_dict[e[1]])
     return (degree_dict[e[0]] - 1) + (degree_dict[e[1]] - undirect_multidigraph(G).number_of_edges(e[0], e[1]))
 
 
