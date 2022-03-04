@@ -96,8 +96,14 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
         print("Now embedding results...")
         results_dict, run_id = run_embed_pipeline(data_paths, i, params, train_conditions_id)
 
+        # TODO: output embeddings from training
+        # TODO: output
+
         print("\nDone embedding.\n")
         all_results_list.append(results_dict)
+
+    # TODO: Calculate metrics
+
 
     # plot_graph_nice(GTest,
     #                 train_subset,
