@@ -90,7 +90,35 @@ class TestProcessingPipeline(unittest.TestCase):
         self.assertEqual(clg8_nc.number_of_edges(), round(self.clg8.number_of_edges()*1.2))
 
     def test_generate_converse_edges_from(self):
-        pass
+        e1 = (0, 10, None, {'edge': 'binds'})
+        e2 = (5, 8, None, {'edge': 'NOT-binds'})
+        e3 = (5, 8, None, {'edge': 'NOT-binds'})
+        e4 = (5, "pizza", {'edge': 'treats'})
+        e5 = ("rains", "evgr", {'distance': 50})
+        e6 = ("trumpet", "guitar", "NOT-yes")
+        e7 = ("maybe", "so")
+
+        ne1 = (0, 10, None, {'edge': 'NOT-binds'})
+        ne2 = (5, 8, None, {'edge': 'binds'})
+        ne3 = (5, 8, None, {'edge': 'binds'})
+        ne4 = (5, "pizza", {'edge': 'NOT-treats'})
+        ne5 = ("rains", "evgr", {'distance': 50})
+        ne6 = ("trumpet", "guitar", "yes")
+        ne7 = ("maybe", "so")
+
+        edge_list = [e1, e2, e3, e4, e5, e6, e7]
+        nedge_list = [ne1, ne2, ne3, ne4, ne5, ne6, ne7]
+        converse_edge_list1 = generate_converse_edges_from(edge_list)
+        converse_edge_list2 = generate_converse_edges_from(nedge_list)
+        converse_edge_list3 = generate_converse_edges_from(generate_converse_edges_from(edge_list))
+
+        self.assertEqual(converse_edge_list1, nedge_list)
+        self.assertEqual(converse_edge_list2, edge_list)
+        self.assertEqual(converse_edge_list3, edge_list)
+
+        e8 = (5, 8, 0, {'edge': 'NOT-binds'})
+        ne8 = (5, 8, None, {'edge': 'binds'})
+        self.assertEqual(generate_converse_edges_from([e8]), [ne8])
 
     def test_fill_with_contradictions(self):
         pass

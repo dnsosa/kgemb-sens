@@ -37,14 +37,41 @@ def negative_completion(G, all_valid_negations, neg_completion_frac):
 
 
 def generate_converse_edges_from(edge_list):
+    def flip_relation(relation):
+        if relation.startswith("NOT-"):
+            converse_relation = relation.split("NOT-")[1]
+        else:
+            converse_relation = f"NOT-{relation}"
+        return converse_relation
+
     out_list = []
     for e in edge_list:
-        if e[3]['edge'].startswith("NOT-"):
-            converse_relation = e[3]['edge'].split("NOT-")[1]
+        if len(e) > 2:
+            if type(e[-1]) == dict:
+                if 'edge' in e[-1] and len(e[-1].keys()) == 1:
+                    # TODO: Revisit if we ever want to deal with multiple edge attributes at once. Need to just update relevant k,v pair. This will be wrong in that case.
+                    new_relation = {'edge': flip_relation(e[-1]['edge'])}
+                else:
+                    new_relation = e[-1]
+
+                if len(e) == 3:
+                    new_edge = (e[0], e[1], new_relation)
+                elif len(e) == 4:
+                    new_edge = (e[0], e[1], None, new_relation)
+                else:
+                    assert "Weird format! (len > 4)"
+                    return None
+            else:
+                print("WARNING: You're flipping an edge where the attribute isn't a dictionary... may cause confusion.")
+                new_relation = flip_relation(e[-1])
+                new_edge = (e[0], e[1], new_relation)  # HOPE TO NEVER GET THIS FORMAT
+        elif len(e) == 2:
+            new_edge = e
         else:
-            converse_relation = f"NOT-{e[3]['edge']}"
-        converse_edge = (e[0], e[1], None, {'edge': converse_relation})
-        out_list.append(converse_edge)
+            assert "Not an edge! (len < 2)"
+            return None
+
+        out_list.append(new_edge)
 
     return out_list
 
