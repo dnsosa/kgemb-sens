@@ -79,30 +79,39 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
 
     all_results_list = []
 
-    # TODO: Pre-compute distance matrix only once?
-    # TODO: Only compute distance matrix if alpha != 0
+    # Precompute distance matrix if requested because it's expensive
+    if (prob_type == "distance") and (alpha != 0):
+        dist_mat = dict(nx.all_pairs_bellman_ford_path_length(nx.Graph(undirect_multidigraph(G))))
+    else:
+        dist_mat = None
+
+    # Precompute degree dictionary
+    if flatten_kg:
+        G_flat = nx.Graph(undirect_multidigraph(G))
+        degree_dict = dict(G_flat.degree())
+    else:
+        degree_dict = dict(G.degree())
 
     print("\n\nBeginning graph processing pipeline...")
-    for i in range(params["n_resample"]):
+    for i in range(n_resample):
         print(f"Sample {i}\n")
-        data_paths, train_conditions_id, edge_divisions, G_con = graph_processing_pipeline(G,
-                                                                                            i,
-                                                                                            params,
-                                                                                            out_dir,
-                                                                                            all_valid_negations,
-                                                                                            all_rels,
-                                                                                            SEED)
+        data_paths, train_conditions_id, edge_divisions, G_con = graph_processing_pipeline(G, i, params, out_dir,
+                                                                                           all_valid_negations,
+                                                                                           all_rels, SEED,
+                                                                                           dist_mat=dist_mat,
+                                                                                           degree_dict=degree_dict)
         train_subset, test_subset, sparse_subset, new_contradictions, removed_contradictions = edge_divisions
         print("Now embedding results...")
         results_dict, run_id = run_embed_pipeline(data_paths, i, params, train_conditions_id)
 
         # TODO: output embeddings from training
-        # TODO: output
+        # TODO: output rankings of test nodes
+        # TODO: calculate metrics about the test edge, add to dictionary of results
 
         print("\nDone embedding.\n")
         all_results_list.append(results_dict)
 
-    # TODO: Calculate metrics
+    # TODO: Calculate metrics for graph, add to results_dict or some other output info...?
 
 
     # plot_graph_nice(GTest,

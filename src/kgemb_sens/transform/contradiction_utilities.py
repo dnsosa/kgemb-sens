@@ -76,7 +76,7 @@ def generate_converse_edges_from(edge_list):
     return out_list
 
 
-def fill_with_contradictions(G, edge_names, val_test_subset, params, all_pairs_lens=None, degree_dict=None):
+def fill_with_contradictions(G, edge_names, val_test_subset, params, dist_mat=None, degree_dict=None):
     G_contra = G.copy()
 
     all_sampled_rel_edges = []
@@ -89,7 +89,7 @@ def fill_with_contradictions(G, edge_names, val_test_subset, params, all_pairs_l
         if params["prob_type"] == "distance":
             probabilities = prob_dist_from_list(val_test_subset,
                                                 rel_edges,
-                                                dist_mat=all_pairs_lens,
+                                                dist_mat=dist_mat,
                                                 prob_type="distance",
                                                 alpha=params["alpha"])
         elif params["prob_type"] == "degree":

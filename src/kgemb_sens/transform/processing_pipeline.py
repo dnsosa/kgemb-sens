@@ -11,7 +11,9 @@ from kgemb_sens.transform.contradiction_utilities import fill_with_contradiction
 from kgemb_sens.transform.graph_utilities import prob_dist_from_list, random_split_list, undirect_multidigraph
 
 
-def graph_processing_pipeline(G, i, params, out_dir, all_valid_negations=None, edge_names=None, SEED=1):
+def graph_processing_pipeline(G, i, params, out_dir,
+                              all_valid_negations=None, edge_names=None, SEED=1,
+                              dist_mat=None, degree_dict=None):
     print(f"Starting iteration {i + 1}")
     c = 1
     found_one = False
@@ -44,20 +46,21 @@ def graph_processing_pipeline(G, i, params, out_dir, all_valid_negations=None, e
         val_subset, test_subset = random_split_list(val_test_subset, params["val_frac"])
 
         if params["prob_type"] == "distance":
-            all_pairs_lens = dict(nx.all_pairs_bellman_ford_path_length(nx.Graph(undirect_multidigraph(G))))
+            if dist_mat is None:
+                dist_mat = dict(nx.all_pairs_bellman_ford_path_length(nx.Graph(undirect_multidigraph(G))))
             probabilities = prob_dist_from_list(val_test_subset,
                                                 edges,
-                                                dist_mat=all_pairs_lens,
+                                                dist_mat=dist_mat,
                                                 prob_type="distance",
                                                 alpha=params["alpha"])
-            degree_dict = None
 
         elif params["prob_type"] == "degree":
-            if params["flatten_kg"] == "True":
-                G_flat = nx.Graph(undirect_multidigraph(G))
-                degree_dict = dict(G_flat.degree())
-            else:
-                degree_dict = dict(G.degree())
+            if degree_dict is None:
+                if params["flatten_kg"] == "True":
+                    G_flat = nx.Graph(undirect_multidigraph(G))
+                    degree_dict = dict(G_flat.degree())
+                else:
+                    degree_dict = dict(G.degree())
 
             probabilities = prob_dist_from_list(val_test_subset,
                                                 edges,
@@ -65,7 +68,6 @@ def graph_processing_pipeline(G, i, params, out_dir, all_valid_negations=None, e
                                                 prob_type="degree",
                                                 graph=G,
                                                 alpha=params["alpha"])
-            all_pairs_lens = None
 
         train_subset = edges[:]
 
@@ -91,7 +93,7 @@ def graph_processing_pipeline(G, i, params, out_dir, all_valid_negations=None, e
 
             G_con, sampled_rel_edges, contradictory_edges = fill_with_contradictions(G, edge_names, val_test_subset,
                                                                                      params,
-                                                                                     all_pairs_lens=all_pairs_lens,
+                                                                                     dist_mat=dist_mat,
                                                                                      degree_dict=degree_dict)
             new_contradictions = sampled_rel_edges + contradictory_edges
             train_subset = list(G_con.edges(data=True, keys=True))
