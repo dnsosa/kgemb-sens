@@ -5,7 +5,6 @@
 import unittest
 
 import networkx as nx
-import numpy as np
 
 from kgemb_sens.analyze.metrics import calc_edge_input_statistics, calc_network_input_statistics, calc_powerlaw_statistics, calc_output_statistics
 from kgemb_sens.load.data_loaders import load_benchmark_data_three_parts
@@ -14,7 +13,7 @@ from kgemb_sens.transform.graph_utilities import undirect_multidigraph
 DATA_DIR = "/Users/dnsosa/.data/pykeen/datasets"
 
 
-class TestGraphUtilities(unittest.TestCase):
+class TestMetrics(unittest.TestCase):
     """Tests for graph utilities in sparsification pipeline for kgemb-sens."""
 
     @classmethod

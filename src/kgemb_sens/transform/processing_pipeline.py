@@ -2,6 +2,8 @@
 
 """Main processing pipeline for manipulating the KGs before embedding."""
 
+import os
+
 import networkx as nx
 import numpy as np
 
@@ -17,7 +19,7 @@ def graph_processing_pipeline(G, i, params, out_dir, all_valid_negations=None, e
     G_con_rem = None
     sparsified_subset, new_contradictions, removed_contradictions = None, None, None
 
-    if params["neg_completion_frac"] > 0:
+    if (params["neg_completion_frac"] > 0) and (params["MODE"] != "sparsification"):
         #print("negative completion path")
         #print(f"Before neg comp: {G.number_of_edges()}")
         G = negative_completion(G, all_valid_negations, params["neg_completion_frac"])
@@ -155,6 +157,7 @@ def graph_processing_pipeline(G, i, params, out_dir, all_valid_negations=None, e
     G_out_train = G_out
 
     train_conditions_id = f"{params['MODE']}_alpha{params['alpha']}_probtype{params['prob_type']}_flat{params['flatten_kg']}_sparsefrac{params['sparsified_frac']}_negCompFrac{params['neg_completion_frac']}_contraFrac{params['contradiction_frac']}_contraRemFrac{params['contra_remove_frac']}_vtfrac{params['val_test_frac']}"
+    os.makedirs(out_dir, exist_ok=True)
 
     new_test_path = f"{out_dir}/test_{train_conditions_id}.tsv"
     G_out_test_df = nx.to_pandas_edgelist(G_out_test)[['source', 'edge', 'target']]
@@ -170,5 +173,10 @@ def graph_processing_pipeline(G, i, params, out_dir, all_valid_negations=None, e
 
     ##return [new_train_path, new_val_path, new_test_path]
 
-    return (new_train_path, new_test_path), train_conditions_id, (train_subset, test_subset, sparsified_subset, new_contradictions, removed_contradictions), G_sparse, G_con
+    if params["MODE"] == "sparsification":
+        G_out = G_sparse
+    else:
+        G_out = G_con
+
+    return (new_train_path, new_test_path), train_conditions_id, (train_subset, test_subset, sparsified_subset, new_contradictions, removed_contradictions), G_out
 
