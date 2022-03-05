@@ -2,11 +2,15 @@
 
 """Run the embedding pipeline."""
 
-import pykeen
+import pandas as pd
+
 from pykeen.pipeline import pipeline
+from pykeen.models.predict import get_tail_prediction_df, get_head_prediction_df
+
+from kgemb_sens.analyze.metrics import calc_edge_input_statistics, calc_output_statistics
 
 
-def run_embed_pipeline(data_paths, i, params, train_conditions_id):
+def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge, degree_dict=None):
     if len(data_paths) == 2:
         new_train_path, new_test_path = data_paths
     elif len(data_paths) == 3:
@@ -27,9 +31,19 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id):
         device='cpu',
     )
 
-    model = result.model
-    # tf = model.triples_factory
     run_id = f"{train_conditions_id}_model{params['model_name']}"
+
+    test_triple = pd.read_csv(new_test_path, header=None, sep="\t").drop_duplicates()
+    test_triple.columns = ["source", "edge", "target"]
+    u, r, v = test_triple['source'][0], test_triple['edge'][0], test_triple['target'][0]
+
+    edge_min_node_degree, edge_rel_count, e_deg = calc_edge_input_statistics(G, test_edge, degree_dict)
+
+    head_prediction_df = get_head_prediction_df(result.model, r, v, triples_factory=result.training)
+    tail_prediction_df = get_tail_prediction_df(result.model, u, r, triples_factory=result.training)
+
+    head_deg_rank_corr = calc_output_statistics(list(head_prediction_df.head_label), degree_dict)
+    tail_deg_rank_corr = calc_output_statistics(list(tail_prediction_df.tail_label), degree_dict)
 
     results_dict = {'Dataset': params["dataset"],
                     'PCNet_filter': params["pcnet_filter"],
@@ -52,6 +66,11 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id):
                     'Hits@5': result.metric_results.get_metric('hits@5'),
                     'Hits@10': result.metric_results.get_metric('hits@10'),
                     'MR': result.metric_results.get_metric('mean_rank'),
-                    'MRR': result.metric_results.get_metric('mean_reciprocal_rank')}
+                    'MRR': result.metric_results.get_metric('mean_reciprocal_rank'),
+                    'Head Deg Rank Corr': head_deg_rank_corr,
+                    'Tail Deg Rank Corr': tail_deg_rank_corr,
+                    'Edge Min Node Degree': edge_min_node_degree,
+                    'Edge Rel Count': edge_rel_count,
+                    'Edge Degree': e_deg}
 
-    return results_dict, run_id
+    return results_dict, run_id, head_prediction_df, tail_prediction_df
