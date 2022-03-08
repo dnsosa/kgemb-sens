@@ -9,9 +9,10 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
+from collections import Counter
+
 from kgemb_sens.load.data_loaders import load_benchmark_data_three_parts
 from kgemb_sens.transform.graph_utilities import edge_dist, undirect_multidigraph
-from kgemb_sens.transform.processing_pipeline import graph_processing_pipeline
 from kgemb_sens.transform.contradiction_utilities import find_all_valid_negations, negative_completion,\
     generate_converse_edges_from, fill_with_contradictions, remove_contradictions
 
@@ -51,6 +52,7 @@ class TestProcessingPipeline(unittest.TestCase):
 
         # Nations
         cls.nations = load_benchmark_data_three_parts("nations", DATA_DIR)
+        cls.nations_degree_dict = dict(cls.nations.degree())
 
     def test_negative_completion(self):
         rels_cc3 = set([r for _, _, r in self.cc3.edges(data='edge')])
@@ -121,9 +123,107 @@ class TestProcessingPipeline(unittest.TestCase):
         self.assertEqual(generate_converse_edges_from([e8]), [ne8])
 
     def test_fill_with_contradictions(self):
-        # TODO
-        pass
+        # DEGREE
+        params = {'prob_type': "degree", 'alpha': 2, 'contradiction_frac': 0.5}
+        edge_names = ["test", "blah"]
+        val_test_subset = [(0, 1, 0, {'edge': 'test'})]
+        G_contra, all_sampled_rel_edges, all_contradictory_edges = fill_with_contradictions(self.cc3, edge_names,
+                                                                                            val_test_subset, params,
+                                                                                            self.cc3_dist_mat,
+                                                                                            self.cc3_degree_dict)
+        G_contra_rels_counter = Counter([r for _, _, r in G_contra.edges(data='edge')])
+        self.assertEqual(G_contra.number_of_edges(), 32)
+        self.assertEqual(G_contra_rels_counter["NOT-test"], 10)
+        self.assertEqual(G_contra_rels_counter["NOT-blah"], 1)
+        self.assertEqual(len(all_contradictory_edges), 11)
+        self.assertEqual(len(all_sampled_rel_edges), 11)
+        self.assertTrue(val_test_subset[0] not in all_sampled_rel_edges)
 
-    def test_remove_contradictions(self):
-        # TODO
-        pass
+        # Check for them being sampled from correct component
+        params = {'prob_type': "degree", 'alpha': -10, 'contradiction_frac': 0.2}
+        edge_names = ["test"]
+        val_test_subset = [(0, 1, 0, {'edge': 'test'})]
+        G_contra, all_sampled_rel_edges, all_contradictory_edges = fill_with_contradictions(self.cc3, edge_names,
+                                                                                            val_test_subset, params,
+                                                                                            None,  # part of test
+                                                                                            self.cc3_degree_dict)
+        G_contra_rels_counter = Counter([r for _, _, r in G_contra.edges(data='edge')])
+        contra_edges_nodes = set([u for u, _, _, _ in all_contradictory_edges] + [v for _, v, _, _ in all_contradictory_edges])
+        self.assertEqual(G_contra.number_of_edges(), 25)
+        self.assertTrue("NOT-blah" not in G_contra_rels_counter.keys())
+        self.assertEqual(G_contra_rels_counter["NOT-test"], 4)
+        self.assertTrue(7 in contra_edges_nodes)  # with high probability
+
+        # DISTANCE
+        params = {'prob_type': "distance", 'alpha': 10, 'contradiction_frac': 0.2}
+        edge_names = ["test"]
+        val_test_subset = [("s", 0, 0, {'edge': 'test'})]
+        G_contra, all_sampled_rel_edges, all_contradictory_edges = fill_with_contradictions(self.clg8, edge_names,
+                                                                                            val_test_subset, params,
+                                                                                            self.clg8_dist_mat,
+                                                                                            None)  # part of test
+        G_contra_rels_counter = Counter([r for _, _, r in G_contra.edges(data='edge')])
+        contra_edges_nodes = set([u for u, _, _, _ in all_contradictory_edges] + [v for _, v, _, _ in all_contradictory_edges])
+        self.assertEqual(G_contra.number_of_edges(), 60)
+        self.assertEqual(G_contra_rels_counter["NOT-test"], 10)
+        self.assertTrue(4 in contra_edges_nodes)  # with high probability
+
+        # What if had negative completed already?
+        avn_clg8 = find_all_valid_negations(self.clg8)
+        clg8_nc = negative_completion(self.clg8, avn_clg8, 0.2)
+        self.assertEqual(len(avn_clg8), 256)  # (18C2 * 2 - (24 * 2 + 2))
+        self.assertEqual(clg8_nc.number_of_edges(), 60)  # 1.2 * 50 = 60
+
+        params = {'prob_type': "distance", 'alpha': -1, 'contradiction_frac': 0.2}
+        edge_names = set([r for _, _, r in clg8_nc.edges(data='edge')])
+        val_test_subset = [(4, "t", 0, {'edge': 'test'})]
+        clg8_nc_rels_counter = Counter([r for _, _, r in clg8_nc.edges(data='edge')])
+        self.assertEqual(clg8_nc_rels_counter["NOT-test"], 10)
+
+        G_contra, all_sampled_rel_edges, all_contradictory_edges = fill_with_contradictions(clg8_nc, edge_names,
+                                                                                            val_test_subset, params,
+                                                                                            self.clg8_dist_mat,
+                                                                                            self.clg8_degree_dict)
+        G_contra_rels_counter = Counter([r for _, _, r in G_contra.edges(data='edge')])
+        contra_edges_nodes = set([u for u, _, _, _ in all_contradictory_edges] + [v for _, v, _, _ in all_contradictory_edges])
+        self.assertEqual(G_contra.number_of_edges(), 72)
+        self.assertTrue("NOT-test" in G_contra_rels_counter.keys())
+        self.assertEqual(G_contra_rels_counter["NOT-test"], 20)  # 10 + 10
+        self.assertTrue(4 in contra_edges_nodes)  # with high probability
+        edge_key_counter = Counter([k for _, _, k, _ in G_contra.edges(data='edge', keys=True)])
+        self.assertEqual(edge_key_counter[1], 12)   # Count the number of contradictions (has a 1 key)
+
+        # Now remove contradictions
+        G_contra_remove, sampled_contras = remove_contradictions(G_contra, all_sampled_rel_edges,
+                                                                 all_contradictory_edges, val_test_subset, 0.5)
+        edge_key_counter = Counter([k for _, _, k, _ in G_contra_remove.edges(data='edge', keys=True)])
+        self.assertEqual(edge_key_counter[1], 6)   # Count the number of contradictions (has a 1 key)
+        for edge in val_test_subset:
+            self.assertTrue(edge not in sampled_contras)
+        uv_set = set([(u, v) for u, v, _, _ in sampled_contras])
+        self.assertEqual(len(uv_set), 6)
+
+        # Finally one test with Nations
+        params = {'prob_type': "degree", 'alpha': 2, 'contradiction_frac': 0.05}
+        edge_names = ["exports3", "embassy", "accusation"]
+        val_test_subset = [("netherlands", "uk", 0, {'edge': 'militaryalliance'})]
+        G_contra, all_sampled_rel_edges, all_contradictory_edges = fill_with_contradictions(self.nations, edge_names,
+                                                                                            val_test_subset, params,
+                                                                                            None,
+                                                                                            self.nations_degree_dict)
+        G_contra_rels_counter = Counter([r for _, _, r in G_contra.edges(data='edge')])
+        self.assertEqual(G_contra.number_of_edges(), 2002)
+        self.assertEqual(G_contra_rels_counter["NOT-exports3"], 2)
+        self.assertEqual(G_contra_rels_counter["NOT-embassy"], 7)
+        self.assertEqual(G_contra_rels_counter["NOT-accusation"], 1)
+        self.assertEqual(len(all_contradictory_edges), 10)
+        self.assertEqual(len(all_sampled_rel_edges), 10)
+        self.assertTrue(val_test_subset[0] not in all_sampled_rel_edges)
+
+        G_contra_remove, sampled_contras = remove_contradictions(G_contra, all_sampled_rel_edges,
+                                                                 all_contradictory_edges, val_test_subset, 1)
+        edge_key_rels = set([rel for _, _, _, rel in G_contra_remove.edges(data='edge', keys=True)])
+
+        self.assertFalse("NOT-exports3" in edge_key_rels)
+        self.assertFalse("NOT-embassy" in edge_key_rels)
+        self.assertFalse("NOT-accusation" in edge_key_rels)

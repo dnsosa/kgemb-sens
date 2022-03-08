@@ -6,6 +6,7 @@ import itertools
 import numpy as np
 
 from kgemb_sens.transform.graph_utilities import prob_dist_from_list
+from kgemb_sens.utilities import good_round
 
 
 def find_all_valid_negations(G):
@@ -26,7 +27,7 @@ def negative_completion(G, all_valid_negations, neg_completion_frac):
     G_complete = G.copy()
 
     n_negations = len(all_valid_negations)
-    sampled_negations_idx = np.random.choice(n_negations, min(round(neg_completion_frac * G.number_of_edges()), n_negations), replace=False)
+    sampled_negations_idx = np.random.choice(n_negations, min(good_round(neg_completion_frac * G.number_of_edges()), n_negations), replace=False)
     sampled_negations = []
     for idx in sampled_negations_idx:
         sampled_negations.append(all_valid_negations[idx])
@@ -100,22 +101,22 @@ def fill_with_contradictions(G, edge_names, val_test_subset, params, dist_mat=No
                                                 graph=G_contra,
                                                 alpha=params["alpha"])
         nz_probs = np.count_nonzero(probabilities)
-        # print(f"For edge_name: {edge_name}, # of non-zeros probs found: {np.count_nonzero(probabilities)}. Requesting: {round(params['contradiction_frac'] * n_rel_edges)}")
+
         sampled_rel_edges_idx = np.random.choice(n_rel_edges,
-                                                 min(round(params["contradiction_frac"] * n_rel_edges), nz_probs),
+                                                 min(good_round(params["contradiction_frac"] * n_rel_edges), nz_probs),
                                                  replace=False, p=probabilities)
         sampled_rel_edges = []
         for idx in sampled_rel_edges_idx:
             sampled_rel_edges.append(rel_edges[idx])
 
-        contradictory_edges = generate_converse_edges_from(sampled_rel_edges)
-        contra_keys = G_contra.add_edges_from(contradictory_edges)  # TEST!
-        contradictory_edges = [(u, v, contra_keys[i], r) for i, (u, v, _, r) in enumerate(contradictory_edges)]
-
+        all_contradictory_edges += generate_converse_edges_from(sampled_rel_edges)
         all_sampled_rel_edges += sampled_rel_edges
-        all_contradictory_edges += contradictory_edges
 
-    return G_contra, all_sampled_rel_edges, all_contradictory_edges  ###, contra_keys
+    # Need to update the keys of the newly added edges
+    contra_keys = G_contra.add_edges_from(all_contradictory_edges)
+    all_contradictory_edges = [(u, v, contra_keys[i], r) for i, (u, v, _, r) in enumerate(all_contradictory_edges)]
+
+    return G_contra, all_sampled_rel_edges, all_contradictory_edges
 
 
 def remove_contradictions(G, edge_set_1, edge_set_2, edges_not_to_remove, contra_remove_frac):
@@ -127,7 +128,7 @@ def remove_contradictions(G, edge_set_1, edge_set_2, edges_not_to_remove, contra
         return None
 
     n_contras = len(edge_set_1)
-    sampled_contra_idx = np.random.choice(n_contras, round(contra_remove_frac * n_contras), replace=False)
+    sampled_contra_idx = np.random.choice(n_contras, good_round(contra_remove_frac * n_contras), replace=False)
     sampled_contras = []
     for idx in sampled_contra_idx:
         if edge_set_1[idx] not in edges_not_to_remove:

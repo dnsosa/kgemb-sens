@@ -9,6 +9,7 @@ import numpy as np
 
 from kgemb_sens.transform.contradiction_utilities import fill_with_contradictions, negative_completion, remove_contradictions
 from kgemb_sens.transform.graph_utilities import prob_dist_from_list, random_split_list, undirect_multidigraph
+from kgemb_sens.utilities import good_round
 
 
 def graph_processing_pipeline(G, i, params, out_dir,
@@ -34,7 +35,7 @@ def graph_processing_pipeline(G, i, params, out_dir,
         np.random.seed((i + 1) * c * SEED)
 
         if params["val_test_frac"] < 1:
-            val_test_set_size = round(params["val_test_frac"] * G.number_of_edges())
+            val_test_set_size = good_round(params["val_test_frac"] * G.number_of_edges())
         else:
             val_test_set_size = int(params["val_test_frac"])
 
@@ -72,7 +73,7 @@ def graph_processing_pipeline(G, i, params, out_dir,
         train_subset = edges[:]
 
         if params["MODE"] == "sparsification":
-            sparsified_set_size = round(params["sparsified_frac"] * G.number_of_edges())
+            sparsified_set_size = good_round(params["sparsified_frac"] * G.number_of_edges())
 
             if np.count_nonzero(probabilities) > sparsified_set_size:
                 found_one = True

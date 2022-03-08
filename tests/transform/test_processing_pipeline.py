@@ -50,7 +50,7 @@ class TestProcessingPipeline(unittest.TestCase):
         # Nations
         cls.nations = load_benchmark_data_three_parts("nations", DATA_DIR)
 
-    # @unittest.skip("Takes a while to process Nations, don't need to test all the time")
+    @unittest.skip("Takes a while to process Nations, don't need to test all the time")
     def test_graph_processing_pipeline_sparsify(self):
 
         out_dir = os.path.join(os.path.dirname(__file__), "test_out_dir")

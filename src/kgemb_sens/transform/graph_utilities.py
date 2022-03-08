@@ -5,6 +5,8 @@ import random
 import networkx as nx
 import numpy as np
 
+from kgemb_sens.utilities import good_round
+
 
 def undirect_multidigraph(G):
     # NOTE: This function is needed because of weird behavior of the .to_undirected() method in Networkx. e.g. if I have
@@ -122,7 +124,7 @@ def prob_dist_from_list(edge_set,
 
 def random_split_list(in_list, val_frac):
     random.shuffle(in_list)
-    k = int(np.round(len(in_list) * val_frac))
+    k = int(good_round(len(in_list) * val_frac))
     return in_list[:k], in_list[k:]
 
 
