@@ -101,7 +101,7 @@ def fill_with_contradictions(G, edge_names, val_test_subset, params, dist_mat=No
     all_contradictory_edges = []
 
     for edge_name in edge_names:
-        rel_edges = [e for e in G_contra.edges(data=True, keys=True) if ((e[3]['edge'] == edge_name) or (e[3]['edge'] == f"NOT-{edge_name}"))]
+        rel_edges = [e for e in G_contra.edges(data=True, keys=True) if ((e[-1]['edge'] == edge_name) or (e[-1]['edge'] == f"NOT-{edge_name}"))]
         n_rel_edges = len(rel_edges)
 
         if n_rel_edges == 0:
@@ -144,20 +144,26 @@ def fill_with_contradictions(G, edge_names, val_test_subset, params, dist_mat=No
 def remove_contradictions(G, edge_set_1, edge_set_2, contra_remove_frac, SEED=None):
     np.random.seed(SEED)
 
-    # NOTE: no risk of removing a test edge, because it will never be contradicted
+    # Note: no risk of removing a test edge, because it will never be contradicted
     G_contra_remove = G.copy()
     if len(edge_set_1) != len(edge_set_2):
         print("Different sized edge sets!! Something went wrong?")
         return None
 
-    n_contras = len(edge_set_1)
-    print(f"Num contras: {n_contras}")
-    print(f"Gonna remove...: {good_round(contra_remove_frac * n_contras)}")
-    sampled_contra_idx = np.random.choice(n_contras, good_round(contra_remove_frac * n_contras), replace=False)
     sampled_contras = []
-    for idx in sampled_contra_idx:
-        sampled_contras.append(edge_set_1[idx])
-        sampled_contras.append(edge_set_2[idx])
+    edge_names = set([r['edge'] for _, _, _, r in edge_set_1])
+    for edge_name in edge_names:
+        rel_edges_idxs = [i for i, e in enumerate(edge_set_1) if (e[-1]['edge'] == edge_name)]
+        n_rel_edges = len(rel_edges_idxs)
+
+        if n_rel_edges == 0:
+            continue
+
+        sampled_contra_idx = np.random.choice(rel_edges_idxs, good_round(contra_remove_frac * n_rel_edges), replace=False)
+
+        for idx in sampled_contra_idx:
+            sampled_contras.append(edge_set_1[idx])
+            sampled_contras.append(edge_set_2[idx])
 
     G_contra_remove.remove_edges_from(sampled_contras)
 

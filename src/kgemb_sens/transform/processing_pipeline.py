@@ -89,7 +89,7 @@ def graph_processing_pipeline(G, i, params, out_dir,
                 sparsified_subset.append(edges[idx])
 
         elif params["MODE"] == "contrasparsify":
-            found_one = True  # Think about this??? What if contrasparsify goes too far?
+            found_one = True
 
             G_con, sampled_rel_edges, contradictory_edges = fill_with_contradictions(G, edge_names, val_test_subset,
                                                                                      params,
@@ -98,7 +98,6 @@ def graph_processing_pipeline(G, i, params, out_dir,
                                                                                      SEED=SEED)
 
             new_contradictions = sampled_rel_edges + contradictory_edges
-            ##train_subset = list(G_con.edges(data=True, keys=True))
 
             G_con, removed_contradictions = remove_contradictions(G_con, sampled_rel_edges, contradictory_edges,
                                                                           params["contra_remove_frac"], SEED=SEED)

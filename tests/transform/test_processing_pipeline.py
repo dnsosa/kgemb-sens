@@ -51,6 +51,7 @@ class TestProcessingPipeline(unittest.TestCase):
 
         # Nations
         cls.nations = load_benchmark_data_three_parts("nations", DATA_DIR)
+        cls.nations_degree_dict = dict(cls.nations.degree())
 
     @unittest.skip("Takes a while to process Nations, don't need to test all the time")
     def test_graph_processing_pipeline_sparsify(self):
@@ -227,21 +228,44 @@ class TestProcessingPipeline(unittest.TestCase):
                                                                          degree_dict=self.cc3_degree_dict)
         test_edge = edge_divisions[1][0]
         new_contradictions, removed_contradictions = edge_divisions[3], edge_divisions[4]
-        contra_dists = [edge_dist(test_edge, sparse_edge, self.clg8_dist_mat) for sparse_edge in new_contradictions]
-        train_dists = [edge_dist(test_edge, sparse_edge, self.clg8_dist_mat) for sparse_edge in edge_divisions[0]]
-
         contra_edges_nodes = set([u for u, _, _, _ in new_contradictions] + [v for _, v, _, _ in new_contradictions])
         G_out_rel_counter = Counter([r for _, _, _, r in G_out.edges(data='edge', keys=True)])
 
         self.assertEqual(G_out.number_of_edges(), 33)  # 20 * 1.1 + 1 = 23 * 2 = (46 - 2) * 0.75 = 33 minus 2 for the test edge
-        self.assertEqual(G_out_rel_counter["NOT-test"], 15)  # 21 * 0.75
-
-        self.assertTrue(np.mean(contra_dists) > np.mean(train_dists))
+        self.assertEqual(G_out_rel_counter["NOT-test"], 15)  # 21 - 6
         self.assertTrue(4 in contra_edges_nodes)  # with high probability
         self.assertEqual(len(removed_contradictions), 12)  # 23 * .25 * 2
         self.assertTrue(edge_divisions[2] is None)
 
-        # DO ONE NATIONS TEST
+        # One Nations test
+        params["prob_type"] = "degree"
+        params["alpha"] = 0
+        params["neg_completion_frac"] = 0
+        params["contradiction_frac"] = 0.1
+        params["contra_remove_frac"] = 0.5
+
+        edge_names = ["exports3", "embassy", "accusation"]  # 34, 141, 23
+        # Starting edges: 1992
+        # Contradictions: +3, +14, +2
+        # Remove fraction: -4, -14, -2
+        # End: 1991
+
+        data_paths, _, edge_divisions, G_out = graph_processing_pipeline(self.nations, 0, params, out_dir,
+                                                                         edge_names=edge_names,
+                                                                         degree_dict=self.nations_degree_dict)
+
+        G_out_rel_counter = Counter([r for _, _, _, r in G_out.edges(data='edge', keys=True)])
+        print(G_out_rel_counter)
+        G_out_rels = set([r for _, _, _, r in G_out.edges(data='edge', keys=True)])
+        nations_rels = set([r for _, _, _, r in self.nations.edges(data='edge', keys=True)])
+        self.assertEqual(G_out.number_of_edges(), 1991)
+        self.assertEqual(len(G_out_rels), len(nations_rels) + 3)
+        self.assertEqual(G_out_rel_counter["exports3"], 32)
+        self.assertEqual(G_out_rel_counter["NOT-exports3"], 1)
+        self.assertEqual(G_out_rel_counter["embassy"], 134)
+        self.assertEqual(G_out_rel_counter["NOT-embassy"], 7)
+        self.assertEqual(G_out_rel_counter["accusation"], 22)
+        self.assertEqual(G_out_rel_counter["NOT-accusation"], 1)
 
         # DO ONE EMBEDDING TEST
 
