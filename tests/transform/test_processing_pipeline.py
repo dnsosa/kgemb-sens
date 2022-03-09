@@ -9,13 +9,15 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
+from collections import Counter
+
 from kgemb_sens.load.data_loaders import load_benchmark_data_three_parts
 from kgemb_sens.transform.graph_utilities import edge_dist, undirect_multidigraph
+from kgemb_sens.transform.contradiction_utilities import find_all_valid_negations
 from kgemb_sens.transform.processing_pipeline import graph_processing_pipeline
 
-# from .resources.test_processing_pipeline_helpers import num_
-
 DATA_DIR = "/Users/dnsosa/.data/pykeen/datasets"
+out_dir = os.path.join(os.path.dirname(__file__), "test_out_dir")
 
 
 class TestProcessingPipeline(unittest.TestCase):
@@ -53,7 +55,6 @@ class TestProcessingPipeline(unittest.TestCase):
     @unittest.skip("Takes a while to process Nations, don't need to test all the time")
     def test_graph_processing_pipeline_sparsify(self):
 
-        out_dir = os.path.join(os.path.dirname(__file__), "test_out_dir")
         # alpha 0, -1, 1
         # prob_type = degree, distance
 
@@ -148,4 +149,99 @@ class TestProcessingPipeline(unittest.TestCase):
         output_test_path = f"{out_dir}/test_{train_conditions_id}.tsv"
         self.assertEqual(len(pd.read_csv(output_train_path, sep='\t', header=None)), round(self.nations.number_of_edges()*0.2)-1)
         self.assertEqual(len(pd.read_csv(output_test_path, sep='\t', header=None)), 2)  # 2 edges is the little hack
+
+    def test_graph_processing_pipeline_contradictification(self):
+        # Distance ones -- clg8
+        params = {"dataset": None,
+                  "pcnet_filter": None,
+                  "val_test_frac": 1,  # Not changing this for now. TODO: test how this affects things
+                  "val_frac": 0,
+                  "sparsified_frac": 0.25,  # Wanna show this has no effect
+                  "alpha": 10,
+                  "n_resample": 1,
+                  "prob_type": "distance",  # distance, degree
+                  "flatten_kg": False,  # Not changing this for now. TODO: test how this affects things
+                  "neg_completion_frac": 0,
+                  "contradiction_frac": 0.5,
+                  "contra_remove_frac": 0,
+                  "MODE": "contrasparsify",
+                  "model_name": None,
+                  "n_epochs": None}
+
+        data_paths, _, edge_divisions, G_out = graph_processing_pipeline(self.clg8, 0, params, out_dir,
+                                                                         edge_names=["test"],
+                                                                         dist_mat=self.clg8_dist_mat)
+        test_edge = edge_divisions[1][0]
+        new_contradictions, removed_contradictions = edge_divisions[3], edge_divisions[4]
+        contra_dists = [edge_dist(test_edge, sparse_edge, self.clg8_dist_mat) for sparse_edge in new_contradictions]
+        train_dists = [edge_dist(test_edge, sparse_edge, self.clg8_dist_mat) for sparse_edge in edge_divisions[0]]
+
+        contra_edges_nodes = set([u for u, _, _, _ in new_contradictions] + [v for _, v, _, _ in new_contradictions])
+        G_out_rel_counter = Counter([r for _, _, _, r in G_out.edges(data='edge', keys=True)])
+        G_out_key_counter = Counter([k for _, _, k, _ in G_out.edges(data='edge', keys=True)])
+
+        self.assertEqual(G_out.number_of_edges(), 75)
+        self.assertEqual(G_out_rel_counter["NOT-test"], 25)
+        self.assertEqual(G_out_key_counter[1], 25)
+
+        self.assertTrue(np.mean(contra_dists) > np.mean(train_dists))
+        self.assertTrue(4 in contra_edges_nodes)  # with high probability
+        self.assertEqual(len(removed_contradictions), 0)
+        self.assertTrue(edge_divisions[2] is None)
+
+        # Test contradiction of close edges
+        params["alpha"] = -2
+        params["contra_remove_frac"] = 1  # See if it does the resample
+
+        data_paths, _, edge_divisions, G_out = graph_processing_pipeline(self.clg8, 0, params, out_dir,
+                                                                         edge_names=["test"],
+                                                                         dist_mat=self.clg8_dist_mat)
+        test_edge = edge_divisions[1][0]
+        new_contradictions, removed_contradictions = edge_divisions[3], edge_divisions[4]
+        contra_dists = [edge_dist(test_edge, sparse_edge, self.clg8_dist_mat) for sparse_edge in new_contradictions]
+        train_dists = [edge_dist(test_edge, sparse_edge, self.clg8_dist_mat) for sparse_edge in edge_divisions[0]]
+
+        G_out_rel_counter = Counter([r for _, _, _, r in G_out.edges(data='edge', keys=True)])
+        G_out_key_counter = Counter([k for _, _, k, _ in G_out.edges(data='edge', keys=True)])
+
+        self.assertEqual(G_out.number_of_edges(), 25)
+        self.assertFalse("NOT-test" in G_out_key_counter)
+        self.assertFalse(1 in G_out_rel_counter)
+
+        self.assertTrue(np.mean(contra_dists) < np.mean(train_dists))
+        self.assertEqual(len(new_contradictions), 50)
+        self.assertEqual(len(removed_contradictions), 50)
+        self.assertTrue(edge_divisions[2] is None)
+
+        # Degree one -- cc3
+        # need to calculate AVN
+        params["prob_type"] = "degree"
+        params["neg_completion_frac"] = 0.1
+        params["contradiction_frac"] = 1.0
+        params["contra_remove_frac"] = 0.25
+
+        avn_cc3 = find_all_valid_negations(self.cc3)
+        data_paths, _, edge_divisions, G_out = graph_processing_pipeline(self.cc3, 0, params, out_dir,
+                                                                         all_valid_negations=avn_cc3,
+                                                                         edge_names=["test", "blah"],
+                                                                         degree_dict=self.cc3_degree_dict)
+        test_edge = edge_divisions[1][0]
+        new_contradictions, removed_contradictions = edge_divisions[3], edge_divisions[4]
+        contra_dists = [edge_dist(test_edge, sparse_edge, self.clg8_dist_mat) for sparse_edge in new_contradictions]
+        train_dists = [edge_dist(test_edge, sparse_edge, self.clg8_dist_mat) for sparse_edge in edge_divisions[0]]
+
+        contra_edges_nodes = set([u for u, _, _, _ in new_contradictions] + [v for _, v, _, _ in new_contradictions])
+        G_out_rel_counter = Counter([r for _, _, _, r in G_out.edges(data='edge', keys=True)])
+
+        self.assertEqual(G_out.number_of_edges(), 33)  # 20 * 1.1 + 1 = 23 * 2 = (46 - 2) * 0.75 = 33 minus 2 for the test edge
+        self.assertEqual(G_out_rel_counter["NOT-test"], 15)  # 21 * 0.75
+
+        self.assertTrue(np.mean(contra_dists) > np.mean(train_dists))
+        self.assertTrue(4 in contra_edges_nodes)  # with high probability
+        self.assertEqual(len(removed_contradictions), 12)  # 23 * .25 * 2
+        self.assertTrue(edge_divisions[2] is None)
+
+        # DO ONE NATIONS TEST
+
+        # DO ONE EMBEDDING TEST
 

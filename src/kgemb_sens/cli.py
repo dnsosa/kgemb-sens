@@ -60,7 +60,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
               "neg_completion_frac": neg_completion_frac, #TODO: Negative completion fraction is silly. What about multiple of other edges. NEED better sampling strategy I think. Randomized algorithm?
               "contradiction_frac": contradiction_frac,
               "contra_remove_frac": contra_remove_frac,
-              "MODE": MODE,  # "sparsification", "contradictification", "contrasparsify"
+              "MODE": MODE,  # "sparsification", "contrasparsify"
               "model_name": model_name,
               "n_epochs": n_epochs}
 
@@ -75,7 +75,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
     all_rels = set([r for _, _, r in G.edges(data='edge')])
 
     # TODO: Simplify to not include contradictification option (contra_remove_frac = 0)
-    if (MODE in ["contradictification", "contrasparsify"]) and (neg_completion_frac > 0):
+    if (MODE == "contrasparsify") and (neg_completion_frac > 0):
         print("\n\nFinding all valid negations\n\n")
         all_valid_negations = find_all_valid_negations(G)
         print("All valid negations found.")

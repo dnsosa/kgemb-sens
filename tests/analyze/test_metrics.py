@@ -14,7 +14,7 @@ DATA_DIR = "/Users/dnsosa/.data/pykeen/datasets"
 
 
 class TestMetrics(unittest.TestCase):
-    """Tests for graph utilities in sparsification pipeline for kgemb-sens."""
+    """Tests for calculating graph metrics for kgemb-sens."""
 
     @classmethod
     def setUpClass(cls):

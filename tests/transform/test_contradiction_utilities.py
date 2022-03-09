@@ -19,6 +19,7 @@ from kgemb_sens.transform.contradiction_utilities import find_all_valid_negation
 # from .resources.test_processing_pipeline_helpers import num_
 
 DATA_DIR = "/Users/dnsosa/.data/pykeen/datasets"
+SEED = 10
 
 
 class TestProcessingPipeline(unittest.TestCase):
@@ -78,8 +79,8 @@ class TestProcessingPipeline(unittest.TestCase):
             self.assertTrue(f"NOT-{rel}" in rels_avn_cc3)
 
         # Negative completion fraction
-        cc3_nc = negative_completion(self.cc3, avn_cc3, 1.0)
-        clg8_nc = negative_completion(self.clg8, avn_cc3, 0.2)
+        cc3_nc = negative_completion(self.cc3, avn_cc3, ["test", "blah"], 1.0, SEED=SEED)
+        clg8_nc = negative_completion(self.clg8, avn_clg8, ["test"], 0.2, SEED=SEED)
         rels_cc3_nc = set([r for _, _, r in cc3_nc.edges(data='edge')])
 
         # Test that the right predicates are added
@@ -130,7 +131,8 @@ class TestProcessingPipeline(unittest.TestCase):
         G_contra, all_sampled_rel_edges, all_contradictory_edges = fill_with_contradictions(self.cc3, edge_names,
                                                                                             val_test_subset, params,
                                                                                             self.cc3_dist_mat,
-                                                                                            self.cc3_degree_dict)
+                                                                                            self.cc3_degree_dict,
+                                                                                            SEED=SEED)
         G_contra_rels_counter = Counter([r for _, _, r in G_contra.edges(data='edge')])
         self.assertEqual(G_contra.number_of_edges(), 32)
         self.assertEqual(G_contra_rels_counter["NOT-test"], 10)
@@ -146,7 +148,8 @@ class TestProcessingPipeline(unittest.TestCase):
         G_contra, all_sampled_rel_edges, all_contradictory_edges = fill_with_contradictions(self.cc3, edge_names,
                                                                                             val_test_subset, params,
                                                                                             None,  # part of test
-                                                                                            self.cc3_degree_dict)
+                                                                                            self.cc3_degree_dict,
+                                                                                            SEED=SEED)
         G_contra_rels_counter = Counter([r for _, _, r in G_contra.edges(data='edge')])
         contra_edges_nodes = set([u for u, _, _, _ in all_contradictory_edges] + [v for _, v, _, _ in all_contradictory_edges])
         self.assertEqual(G_contra.number_of_edges(), 25)
@@ -161,7 +164,8 @@ class TestProcessingPipeline(unittest.TestCase):
         G_contra, all_sampled_rel_edges, all_contradictory_edges = fill_with_contradictions(self.clg8, edge_names,
                                                                                             val_test_subset, params,
                                                                                             self.clg8_dist_mat,
-                                                                                            None)  # part of test
+                                                                                            None,  # part of test
+                                                                                            SEED=SEED)
         G_contra_rels_counter = Counter([r for _, _, r in G_contra.edges(data='edge')])
         contra_edges_nodes = set([u for u, _, _, _ in all_contradictory_edges] + [v for _, v, _, _ in all_contradictory_edges])
         self.assertEqual(G_contra.number_of_edges(), 60)
@@ -170,7 +174,7 @@ class TestProcessingPipeline(unittest.TestCase):
 
         # What if had negative completed already?
         avn_clg8 = find_all_valid_negations(self.clg8)
-        clg8_nc = negative_completion(self.clg8, avn_clg8, 0.2)
+        clg8_nc = negative_completion(self.clg8, avn_clg8, ["test"], 0.2, SEED=SEED)
         self.assertEqual(len(avn_clg8), 256)  # (18C2 * 2 - (24 * 2 + 2))
         self.assertEqual(clg8_nc.number_of_edges(), 60)  # 1.2 * 50 = 60
 
@@ -183,7 +187,9 @@ class TestProcessingPipeline(unittest.TestCase):
         G_contra, all_sampled_rel_edges, all_contradictory_edges = fill_with_contradictions(clg8_nc, edge_names,
                                                                                             val_test_subset, params,
                                                                                             self.clg8_dist_mat,
-                                                                                            self.clg8_degree_dict)
+                                                                                            self.clg8_degree_dict,
+                                                                                            SEED=SEED)
+        print(G_contra.edges(data='edge', keys=True))
         G_contra_rels_counter = Counter([r for _, _, r in G_contra.edges(data='edge')])
         contra_edges_nodes = set([u for u, _, _, _ in all_contradictory_edges] + [v for _, v, _, _ in all_contradictory_edges])
         self.assertEqual(G_contra.number_of_edges(), 72)
@@ -195,7 +201,7 @@ class TestProcessingPipeline(unittest.TestCase):
 
         # Now remove contradictions
         G_contra_remove, sampled_contras = remove_contradictions(G_contra, all_sampled_rel_edges,
-                                                                 all_contradictory_edges, val_test_subset, 0.5)
+                                                                 all_contradictory_edges, 0.5, SEED=SEED)
         edge_key_counter = Counter([k for _, _, k, _ in G_contra_remove.edges(data='edge', keys=True)])
         self.assertEqual(edge_key_counter[1], 6)   # Count the number of contradictions (has a 1 key)
         for edge in val_test_subset:
@@ -210,18 +216,20 @@ class TestProcessingPipeline(unittest.TestCase):
         G_contra, all_sampled_rel_edges, all_contradictory_edges = fill_with_contradictions(self.nations, edge_names,
                                                                                             val_test_subset, params,
                                                                                             None,
-                                                                                            self.nations_degree_dict)
+                                                                                            self.nations_degree_dict,
+                                                                                            SEED=SEED)
         G_contra_rels_counter = Counter([r for _, _, r in G_contra.edges(data='edge')])
         self.assertEqual(G_contra.number_of_edges(), 2002)
         self.assertEqual(G_contra_rels_counter["NOT-exports3"], 2)
         self.assertEqual(G_contra_rels_counter["NOT-embassy"], 7)
         self.assertEqual(G_contra_rels_counter["NOT-accusation"], 1)
+        self.assertEqual(len(set([r for _, _, r in G_contra.edges(data='edge')])), 58)
         self.assertEqual(len(all_contradictory_edges), 10)
         self.assertEqual(len(all_sampled_rel_edges), 10)
         self.assertTrue(val_test_subset[0] not in all_sampled_rel_edges)
 
         G_contra_remove, sampled_contras = remove_contradictions(G_contra, all_sampled_rel_edges,
-                                                                 all_contradictory_edges, val_test_subset, 1)
+                                                                 all_contradictory_edges, 1, SEED=SEED)
         edge_key_rels = set([rel for _, _, _, rel in G_contra_remove.edges(data='edge', keys=True)])
 
         self.assertFalse("NOT-exports3" in edge_key_rels)

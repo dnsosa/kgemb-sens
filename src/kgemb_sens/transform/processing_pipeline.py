@@ -7,6 +7,8 @@ import os
 import networkx as nx
 import numpy as np
 
+from collections import Counter
+
 from kgemb_sens.transform.contradiction_utilities import fill_with_contradictions, negative_completion, remove_contradictions
 from kgemb_sens.transform.graph_utilities import prob_dist_from_list, random_split_list, undirect_multidigraph
 from kgemb_sens.utilities import good_round
@@ -19,14 +21,11 @@ def graph_processing_pipeline(G, i, params, out_dir,
     c = 1
     found_one = False
     G_con = None
-    G_con_rem = None
     sparsified_subset, new_contradictions, removed_contradictions = None, None, None
 
     if (params["neg_completion_frac"] > 0) and (params["MODE"] != "sparsification"):
-        #print("negative completion path")
-        #print(f"Before neg comp: {G.number_of_edges()}")
-        G = negative_completion(G, all_valid_negations, params["neg_completion_frac"])
-        #print(f"AFTER neg comp: {G.number_of_edges()}")
+        G = negative_completion(G, all_valid_negations, edge_names, params["neg_completion_frac"])
+        print(f"AFTER neg comp: {G.number_of_edges()}")
 
     edges = list(G.edges(data=True, keys=True))
 
@@ -89,21 +88,21 @@ def graph_processing_pipeline(G, i, params, out_dir,
             for idx in sparsified_subset_idx:
                 sparsified_subset.append(edges[idx])
 
-        elif params["MODE"] in ["contradictification", "contrasparsify"]:
+        elif params["MODE"] == "contrasparsify":
             found_one = True  # Think about this??? What if contrasparsify goes too far?
 
             G_con, sampled_rel_edges, contradictory_edges = fill_with_contradictions(G, edge_names, val_test_subset,
                                                                                      params,
                                                                                      dist_mat=dist_mat,
-                                                                                     degree_dict=degree_dict)
-            new_contradictions = sampled_rel_edges + contradictory_edges
-            train_subset = list(G_con.edges(data=True, keys=True))
+                                                                                     degree_dict=degree_dict,
+                                                                                     SEED=SEED)
 
-            if params["MODE"] == "contrasparsify":
-                G_con_rem, removed_contradictions = remove_contradictions(G_con, sampled_rel_edges, contradictory_edges,
-                                                                          val_test_subset,
-                                                                          params["contra_remove_frac"])
-                train_subset = list(G_con_rem.edges(data=True, keys=True))
+            new_contradictions = sampled_rel_edges + contradictory_edges
+            ##train_subset = list(G_con.edges(data=True, keys=True))
+
+            G_con, removed_contradictions = remove_contradictions(G_con, sampled_rel_edges, contradictory_edges,
+                                                                          params["contra_remove_frac"], SEED=SEED)
+            train_subset = list(G_con.edges(data=True, keys=True))
 
         # Need to check that the nodes and relations are found in the training too
         for val_test_edge in val_test_subset:
@@ -142,8 +141,6 @@ def graph_processing_pipeline(G, i, params, out_dir,
 
     if G_con is not None:
         G_out = G_con.copy()
-    elif G_con_rem is not None:
-        G_out = G_con_rem.copy()
     else:
         G_out = G.copy()
 
