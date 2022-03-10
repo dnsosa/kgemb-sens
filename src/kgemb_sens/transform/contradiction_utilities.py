@@ -9,6 +9,10 @@ from kgemb_sens.transform.graph_utilities import prob_dist_from_list
 from kgemb_sens.utilities import good_round
 
 
+def remove_prefix_nots(word):
+    return word.split("NOT-")[-1]
+
+
 def find_all_valid_negations(G):
     # TODO: This will create a problem if there are already 'NOT-...' edges in the starting graph. Can ignore for now.
     all_valid_negations = []
@@ -30,7 +34,7 @@ def negative_completion(G, all_valid_negations, edge_names, neg_completion_frac,
     G_complete = G.copy()
 
     if edge_names is None:
-        edge_names = list(set([r for _, _, _, r in G_complete.edges(data='edge', keys=True)]))
+        edge_names = list(set([remove_prefix_nots(r) for _, _, _, r in G_complete.edges(data='edge', keys=True)]))
 
     for edge_name in edge_names:
         rel_edges = [e for e in G.edges(data=True, keys=True) if e[-1]['edge'] == edge_name]
@@ -91,9 +95,6 @@ def generate_converse_edges_from(edge_list):
 def fill_with_contradictions(G, edge_names, val_test_subset, params, dist_mat=None, degree_dict=None, SEED=None):
     np.random.seed(SEED)
 
-    def remove_prefix_nots(word):
-        return word.split("NOT-")[-1]
-
     edge_names = set([remove_prefix_nots(edge_name) for edge_name in edge_names])
     G_contra = G.copy()
 
@@ -151,9 +152,9 @@ def remove_contradictions(G, edge_set_1, edge_set_2, contra_remove_frac, SEED=No
         return None
 
     sampled_contras = []
-    edge_names = set([r['edge'] for _, _, _, r in edge_set_1])
+    edge_names = set([remove_prefix_nots(r['edge']) for _, _, _, r in edge_set_1])
     for edge_name in edge_names:
-        rel_edges_idxs = [i for i, e in enumerate(edge_set_1) if (e[-1]['edge'] == edge_name)]
+        rel_edges_idxs = [i for i, e in enumerate(edge_set_1) if (remove_prefix_nots(e[-1]['edge']) == edge_name)]
         n_rel_edges = len(rel_edges_idxs)
 
         if n_rel_edges == 0:

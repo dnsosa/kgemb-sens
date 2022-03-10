@@ -9,6 +9,8 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
+from collections import Counter
+
 from kgemb_sens.analyze.embed import run_embed_pipeline
 from kgemb_sens.analyze.metrics import calc_network_input_statistics
 from kgemb_sens.load.data_loaders import load_benchmark_data_three_parts, load_drkg_data
@@ -18,7 +20,7 @@ from kgemb_sens.transform.processing_pipeline import graph_processing_pipeline
 
 DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
 
-# TODO Fill this all in
+
 @click.command()
 @click.option('--output_folder', 'out_dir')
 @click.option('--data_dir', 'data_dir', default=DATA_DIR)
@@ -37,7 +39,6 @@ DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/dataset
 @click.option('--contra_remove_frac', 'contra_remove_frac', default=0.0)
 @click.option('--MODE', 'MODE', default='contrasparsify')
 @click.option('--model_name', 'model_name', default='transe')
-@click.option('--neg_completion_frac', 'neg_completion_frac', default=0.0)
 @click.option('--n_epochs', 'n_epochs', default=200)
 def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val_frac, sparsified_frac, alpha, n_resample, prob_type, flatten_kg,
          neg_completion_frac, contradiction_frac, contra_remove_frac, MODE, model_name, n_epochs):
@@ -46,6 +47,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
     SEED = 1005
     np.random.seed(SEED)
 
+    print("Made it here")
     os.makedirs(out_dir, exist_ok=True)
 
     params = {"dataset": dataset,
@@ -57,7 +59,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
               "n_resample": n_resample,
               "prob_type": prob_type,  # distance, degree
               "flatten_kg": flatten_kg,
-              "neg_completion_frac": neg_completion_frac, #TODO: Negative completion fraction is silly. What about multiple of other edges. NEED better sampling strategy I think. Randomized algorithm?
+              "neg_completion_frac": neg_completion_frac, #TODO: NEED better sampling strategy I think. Randomized algorithm?
               "contradiction_frac": contradiction_frac,
               "contra_remove_frac": contra_remove_frac,
               "MODE": MODE,  # "sparsification", "contrasparsify"
@@ -70,11 +72,10 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
         G = load_benchmark_data_three_parts(dataset, data_dir)
     elif dataset in ["gnbr_gg", "gnbr_drdz", "gnbr_drg", "drugbank_drdz", "drugbank_drg", "string_gg"]:
         G = load_drkg_data(dataset, data_dir, pcnet_filter, pcnet_dir)
-    print("\n\nData load and network creation complete.\n\n")
+    print("\nData load and network creation complete.")
     all_valid_negations = []
     all_rels = set([r for _, _, r in G.edges(data='edge')])
 
-    # TODO: Simplify to not include contradictification option (contra_remove_frac = 0)
     if (MODE == "contrasparsify") and (neg_completion_frac > 0):
         print("\n\nFinding all valid negations\n\n")
         all_valid_negations = find_all_valid_negations(G)
@@ -97,17 +98,17 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
 
     print("\n\nBeginning graph processing pipeline...")
     for i in range(n_resample):
-        print(f"Sample {i}\n")
-        data_paths, train_conditions_id, edge_divisions, G_con = graph_processing_pipeline(G, i, params, out_dir,
-                                                                                           all_valid_negations,
-                                                                                           all_rels, SEED,
-                                                                                           dist_mat=dist_mat,
-                                                                                           degree_dict=degree_dict)
+        print(f"\nSample {i}")
+        data_paths, train_conditions_id, edge_divisions, G_out = graph_processing_pipeline(G, i, params, out_dir,
+                                                                      all_valid_negations,
+                                                                      all_rels, SEED,
+                                                                      dist_mat=dist_mat,
+                                                                      degree_dict=degree_dict)
         train_subset, test_subset, sparse_subset, new_contradictions, removed_contradictions = edge_divisions
         print("Now embedding results...")
         results_dict, run_id, head_pred_df, tail_pred_df = run_embed_pipeline(data_paths, i, params,
                                                                               train_conditions_id,
-                                                                              G, test_subset[0],
+                                                                              G_out, test_subset[0],
                                                                               degree_dict)
 
         # TODO: output embeddings from training
@@ -125,9 +126,10 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
 
     print("\nFinished with all resamples!")
 
-    print(f"Saving all results and metrics to: {save_dir}")
+    #print(f"\mSaving all results and metrics to: {save_dir}")
 
     # Calculate network stats
+    # Input network
     calc_diam = (G.number_of_edges() < 100)
     network_stats_results = calc_network_input_statistics(G, calc_diam)
     network_stats_dict = {"n_ent_network": network_stats_results[0],
@@ -136,18 +138,24 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
                           "avg_cc": network_stats_results[3],
                           "med_rel_count": network_stats_results[4],
                           "min_rel_count": network_stats_results[5]}
+
+    # Network post modification
+    network_stats_results_post = calc_network_input_statistics(G_out, calc_diam)
+    network_stats_dict_post = {"post_n_ent_network": network_stats_results_post[0],
+                               "post_n_rel_network": network_stats_results_post[1],
+                               "post_n_conn_comps": network_stats_results_post[2],
+                               "post_avg_cc": network_stats_results_post[3],
+                               "post_med_rel_count": network_stats_results_post[4],
+                               "post_min_rel_count": network_stats_results_post[5]}
+
     if calc_diam:
         network_stats_dict["diam"] = network_stats_results[6]
+        network_stats_dict_post["diam"] = network_stats_results_post[6]
+
+    network_stats_dict.update(network_stats_dict_post)
 
     network_stats_df = pd.DataFrame(network_stats_dict, index=[0])
     network_stats_df.to_csv(f"{save_dir}/network_stats.tsv", sep='\t', header=True, index=False)
-
-    # plot_graph_nice(GTest,
-    #                 train_subset,
-    #                 test_subset,
-    #                 sparse_subset=sparse_subset,
-    #                 new_contradictions=new_contradictions,
-    #                 removed_contradictions=removed_contradictions)
 
     res_df = pd.DataFrame(all_results_list)
     res_df.to_csv(f"{save_dir}/results.df", sep='\t', header=True, index=False)

@@ -3,128 +3,55 @@
 """Tests for ``kgemb_sens``."""
 
 import unittest
+import os.path
+
+import pandas as pd
 
 from click.testing import CliRunner
 
 from kgemb_sens import cli
 
-#from tests.constants import F1_PATH, F2_PATH
-#from tests.constants import tests_output_folder
+# from tests.constants import TEST_DIR, DATA_DIR
+
+OUT_DIR = "/Users/dnsosa/Desktop/AltmanLab/KGEmbSensitivity/kgemb-sens/tests/analyze/analyze_test_out"
+DATA_DIR = "/Users/dnsosa/.data/pykeen/datasets"
 
 
-class TestKgembSens(unittest.TestCase):
+class TestCli(unittest.TestCase):
     """Test KG embedding sensitivity experiments."""
 
-    def test_kgemb_sens(self):
-        """Test ``kgemb_sens``."""
-        expected = None #fill in
-        # actual = list(iter_together(F1_PATH, F2_PATH, sep=','))
-        # self.assertEqual(expected, actual)
-        pass  # TODO: Fill in
-
+    @unittest.skip("Takes a while to process Nations, don't need to test all the time")
     def test_cli(self):
-        """Test the ``iter_together`` command line interface."""
-        #runner = CliRunner()
-        #args
-        #args = [F1_PATH, F2_PATH]
-        #result = runner.invoke(cli.main, args)
-        # self.assertEqual(0, result.exit_code)
-        # expected_output = 'a,a_1,a_2\nb,b_1,b_2\nc,c_1,c_2\nd,d_1,d_2\n'
-        # self.assertEqual(expected_output, result.output)
-        pass  # TODO: Fill in
+        """Test the ``kgemb_sens`` command line interface."""
+        runner = CliRunner()
+        args = f""" --output_folder {OUT_DIR}
+                    --data_dir {DATA_DIR}
+                    --dataset nations
+                    --n_resample 1
+                    --n_epochs 1 
+                    --neg_completion_frac 0
+                    --contradiction_frac 1.0
+                    --contra_remove_frac 0.5"""
 
+        result = runner.invoke(cli.main, args)
+        self.assertEqual(result.exit_code, 0)
+        save_dir = "/Users/dnsosa/Desktop/AltmanLab/KGEmbSensitivity/kgemb-sens/tests/analyze/analyze_test_out/results/contrasparsify_alpha0.0_probtypedegree_flatFalse_sparsefrac0.0_negCompFrac0.0_contraFrac1.0_contraRemFrac0.5_vtfrac1.0_modeltranse"
+        net_stats_path = os.path.join(save_dir, "network_stats.tsv")
+        self.assertTrue(os.path.exists(net_stats_path))
+        net_stats_df = pd.read_csv(net_stats_path, sep='\t')
+        self.assertEqual(net_stats_df["n_ent_network"][0], 14)
+        self.assertEqual(net_stats_df["post_n_rel_network"][0], 108)
 
-#GTest = nx.MultiDiGraph()
-##GTest.add_edges_from([('a', 'b', {"edge": "in"}),
-#                  ('b', 'c', {"edge": "in"}),
-#                  ('c', 'd', {"edge": "in"}),
-#                  ('d', 'e', {"edge": "in"}),
-#                  ('e', 'f', {"edge": "in"}),
-#                  ('f', 'g', {"edge": "in"}),
-#                  ('g', 'h', {"edge": "in"}),
-#                  ('h', 'i', {"edge": "in"}),
-#                  ('i', 'j', {"edge": "in"}),
-#                  ('j', 'a', {"edge": "in"}),
-#                  ('a', 'c', {"edge": "in"}),
-#                  ('a', 'g', {"edge": "in"}),
-#                  ('b', 'c', {"edge": "under"}),
-#                  ('b', 'c', {"edge": "over"}),
-#                  #('b', 'c', {"edge": "around"}),
-#                #('b', 'c', {"edge": "through"}),
-#                  #('b', 'c', {"edge": "within"}),
-#                  #('b', 'c', {"edge": "beside"}),
-#                  ('g', 'j', {"edge": "in"})]
-#                )
-#
-# train_subset = [('b', 'c', {"edge": "in"}),
-#                   ('c', 'd', {"edge": "in"}),
-#                   ('d', 'e', {"edge": "in"}),
-#                   ('e', 'f', {"edge": "in"}),
-#                   ('f', 'g', {"edge": "in"})]
-# test_subset = [('a', 'b', {"edge": "in"})]
-# sparse_subset = [('h', 'i', {"edge": "in"}),
-#                   ('i', 'j', {"edge": "in"}),
-#                   ('j', 'a', {"edge": "in"}),
-#                   ('a', 'c', {"edge": "in"}),
-#                   ('a', 'g', {"edge": "in"}),
-#                   ('b', 'c', {"edge": "in"}),
-#                   ('g', 'j', {"edge": "in"})]
-# new_contradictions = [('b', 'c', {"edge": "in"}),
-#                   ('c', 'd', {"edge": "in"}),
-#                   ('d', 'e', {"edge": "in"}),
-#                   ('e', 'f', {"edge": "in"})]
-# removed_contradictions = [('b', 'c', {"edge": "in"}),
-#                           ('c', 'd', {"edge": "in"})]
+        results_path = os.path.join(save_dir, "results.df")
+        self.assertTrue(os.path.exists(results_path))
+        results_df = pd.read_csv(results_path, sep='\t')
+        self.assertEqual(results_df["Alpha"][0], 0)
+        self.assertEqual(results_df["PCNet_filter"][0], False)
+        self.assertEqual(results_df["MODE"][0], "contrasparsify")
+        self.assertEqual(results_df["Run"][0], 0)
+        self.assertTrue(results_df["Edge Degree"][0] > 0)
 
-#
-#
-#
-# FULL PIPELINE
-
-# Input parameters
-
-#SEED = 1005
-#np.random.seed(SEED)
-
-#params = {"dataset": "nations",
-#          "val_test_frac": 1,
-#          "val_fraction": 0,
-#          "sparsified_frac": 0,
-#          "alpha": -1,
-#          "n_resample": 100,
-#          "prob_type": "distance",  # distance, degree
-#          "flatten_kg": "False",
-#          "neg_completion_fraction": 0,
-#          "contradiction_fraction": 0.1,
-#          "contra_remove_fraction": 0,
-#          "MODE": "contrasparsify",  # "sparsification", "contradictification", "contrasparsify"
-#          "model_name": "transe",
-#          "n_epochs": 200}
-#
-#G = load_data_three_parts(params["dataset"])
-###G = GTest
-#all_valid_negations = []
-#
-###edge_names = ["in"]
-#if params["MODE"] in ["contradictification", "contrasparsify"]:
-#    all_valid_negations, all_rels = find_all_valid_negations(G)
-#
-#all_results_list = []
-#
-#for i in range(params["n_resample"]):
-#    data_paths, train_conditions_id, edge_divisions = graph_processing_pipeline(G, i, params, all_valid_negations,
-#                                                                                all_rels, SEED)
-#    train_subset, test_subset, sparse_subset, new_contradictions, removed_contradictions = edge_divisions
-#    results_dict = run_embed_pipeline(data_paths, i, params, train_conditions_id)
-#
-#    all_results_list.append(results_dict)
-#
-#plot_graph_nice(GTest,
-#                train_subset,
-#                test_subset,
-#                sparse_subset=sparse_subset,
-#                new_contradictions=new_contradictions,
-#                removed_contradictions=removed_contradictions)
-
-
-#### nx.to_pandas_edgelist(G_out_train)
+        head_preds = os.path.join(save_dir, "head_pred_run_0.tsv")
+        self.assertTrue(os.path.exists(head_preds))
+        tail_preds = os.path.join(save_dir, "tail_pred_run_0.tsv")
+        self.assertTrue(os.path.exists(tail_preds))

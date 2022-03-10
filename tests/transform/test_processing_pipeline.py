@@ -53,7 +53,7 @@ class TestProcessingPipeline(unittest.TestCase):
         cls.nations = load_benchmark_data_three_parts("nations", DATA_DIR)
         cls.nations_degree_dict = dict(cls.nations.degree())
 
-    @unittest.skip("Takes a while to process Nations, don't need to test all the time")
+    #@unittest.skip("Takes a while to process Nations, don't need to test all the time")
     def test_graph_processing_pipeline_sparsify(self):
 
         # alpha 0, -1, 1
@@ -151,6 +151,7 @@ class TestProcessingPipeline(unittest.TestCase):
         self.assertEqual(len(pd.read_csv(output_train_path, sep='\t', header=None)), round(self.nations.number_of_edges()*0.2)-1)
         self.assertEqual(len(pd.read_csv(output_test_path, sep='\t', header=None)), 2)  # 2 edges is the little hack
 
+    #@unittest.skip("Takes a while to process Nations, don't need to test all the time")
     def test_graph_processing_pipeline_contradictification(self):
         # Distance ones -- clg8
         params = {"dataset": None,
@@ -231,10 +232,10 @@ class TestProcessingPipeline(unittest.TestCase):
         contra_edges_nodes = set([u for u, _, _, _ in new_contradictions] + [v for _, v, _, _ in new_contradictions])
         G_out_rel_counter = Counter([r for _, _, _, r in G_out.edges(data='edge', keys=True)])
 
-        self.assertEqual(G_out.number_of_edges(), 33)  # 20 * 1.1 + 1 = 23 * 2 = (46 - 2) * 0.75 = 33 minus 2 for the test edge
-        self.assertEqual(G_out_rel_counter["NOT-test"], 15)  # 21 - 6
+        self.assertEqual(G_out.number_of_edges(), 35)  # 20 * 1.1 = 22 - 1 test * .25 = remove 5; 1 * 1.1 * .25 = remove 0
+        self.assertEqual(G_out_rel_counter["NOT-test"], 16)  # 21 - 5
         self.assertTrue(4 in contra_edges_nodes)  # with high probability
-        self.assertEqual(len(removed_contradictions), 12)  # 23 * .25 * 2
+        self.assertEqual(len(removed_contradictions), 10)  # removed 5
         self.assertTrue(edge_divisions[2] is None)
 
         # One Nations test
@@ -255,7 +256,6 @@ class TestProcessingPipeline(unittest.TestCase):
                                                                          degree_dict=self.nations_degree_dict)
 
         G_out_rel_counter = Counter([r for _, _, _, r in G_out.edges(data='edge', keys=True)])
-        print(G_out_rel_counter)
         G_out_rels = set([r for _, _, _, r in G_out.edges(data='edge', keys=True)])
         nations_rels = set([r for _, _, _, r in self.nations.edges(data='edge', keys=True)])
         self.assertEqual(G_out.number_of_edges(), 1991)
@@ -266,6 +266,3 @@ class TestProcessingPipeline(unittest.TestCase):
         self.assertEqual(G_out_rel_counter["NOT-embassy"], 7)
         self.assertEqual(G_out_rel_counter["accusation"], 22)
         self.assertEqual(G_out_rel_counter["NOT-accusation"], 1)
-
-        # DO ONE EMBEDDING TEST
-

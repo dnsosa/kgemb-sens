@@ -25,7 +25,6 @@ def graph_processing_pipeline(G, i, params, out_dir,
 
     if (params["neg_completion_frac"] > 0) and (params["MODE"] != "sparsification"):
         G = negative_completion(G, all_valid_negations, edge_names, params["neg_completion_frac"])
-        print(f"AFTER neg comp: {G.number_of_edges()}")
 
     edges = list(G.edges(data=True, keys=True))
 
@@ -90,7 +89,6 @@ def graph_processing_pipeline(G, i, params, out_dir,
 
         elif params["MODE"] == "contrasparsify":
             found_one = True
-
             G_con, sampled_rel_edges, contradictory_edges = fill_with_contradictions(G, edge_names, val_test_subset,
                                                                                      params,
                                                                                      dist_mat=dist_mat,
@@ -101,6 +99,7 @@ def graph_processing_pipeline(G, i, params, out_dir,
 
             G_con, removed_contradictions = remove_contradictions(G_con, sampled_rel_edges, contradictory_edges,
                                                                           params["contra_remove_frac"], SEED=SEED)
+
             train_subset = list(G_con.edges(data=True, keys=True))
 
         # Need to check that the nodes and relations are found in the training too

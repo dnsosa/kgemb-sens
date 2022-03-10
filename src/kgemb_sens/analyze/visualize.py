@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 
 
-def plot_graph_nice(G, train_subset, test_subset, sparse_subset=None, new_contradictions=None,
+def plot_graph_nice(G, save_dir, train_subset, test_subset, sparse_subset=None, new_contradictions=None,
                     removed_contradictions=None):
     np.random.seed(1238)
     pos = nx.spring_layout(G)
@@ -18,7 +18,6 @@ def plot_graph_nice(G, train_subset, test_subset, sparse_subset=None, new_contra
     nx.draw_networkx_nodes(G, pos=pos, node_color="#b0b0b0", node_size=20, alpha=.4)
     nx.draw_networkx_labels(G, pos=pos, font_color="green", font_size=16)
 
-    ###nx.draw_networkx_edges(G, pos=pos, edge_color="#b0b0b0", width=.3, alpha=.5)
     nx.draw_networkx_edges(G, pos=pos, edgelist=train_subset, edge_color="#d6c618", width=.6, alpha=1)  # yellow
     nx.draw_networkx_edges(G, pos=pos, edgelist=test_subset, edge_color="blue", width=.4, alpha=1)
     if sparse_subset is not None:
@@ -31,10 +30,9 @@ def plot_graph_nice(G, train_subset, test_subset, sparse_subset=None, new_contra
         nx.draw_networkx_edges(G, pos=pos, edgelist=removed_contradictions, edge_color="white", width=2, alpha=1,
                                style=':')
 
-        ### edge_labels = dict([((u,v), r['edge']) for u, v, rd in G1.edges(data=True)])
     e_label_dict = {}
     e_label_dict_nice = {}
-    for u, v, _, r in train_subset + test_subset:
+    for u, v, r in train_subset + test_subset:
         if (u, v) not in e_label_dict.keys():
             e_label_dict[(u, v)] = [r['edge']]
         else:
@@ -45,4 +43,6 @@ def plot_graph_nice(G, train_subset, test_subset, sparse_subset=None, new_contra
     nx.draw_networkx_edge_labels(G, pos=pos, font_size=7, edge_labels=e_label_dict_nice)
 
     plt.axis('off')
-    plt.show()
+    # plt.show()
+
+    plt.savefig(f"{save_dir}/test_network_out.png")
