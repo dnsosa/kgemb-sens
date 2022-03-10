@@ -71,5 +71,5 @@ def calc_powerlaw_statistics(degree_dict):
 
 def calc_output_statistics(prediction_ranks, degree_dict):
     entity_counts = [degree_dict[entity] for entity in prediction_ranks]
-    entity_counts_pred_rank_spearman = stats.spearmanr(np.arange(len(prediction_ranks)), entity_counts)
+    entity_counts_pred_rank_spearman = stats.spearmanr(np.arange(len(prediction_ranks)), entity_counts).correlation
     return entity_counts_pred_rank_spearman
