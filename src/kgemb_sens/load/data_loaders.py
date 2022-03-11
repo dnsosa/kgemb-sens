@@ -5,6 +5,9 @@
 import pandas as pd
 import networkx as nx
 
+from kgemb_sens.transform.graph_utilities import undirect_multidigraph
+
+
 # local data dir
 ##data_dir="/Users/dnsosa/.data/pykeen/datasets"
 DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
@@ -45,7 +48,7 @@ def load_benchmark_data_three_parts(dataset, data_dir=DATA_DIR):
     return G
 
 
-def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCNET_DIR):
+def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCNET_DIR, dengue_filter=False, dengue_expand_depth=1):
 
     # Assumes it's already extracted somewhere
     drkg_df = pd.read_csv(f"{data_dir}/PYKEEN_DATASETS/drkg.tsv", sep="\t")
@@ -84,27 +87,54 @@ def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCN
         filtered_df['source_entrez'] = filtered_df.source.str.split('::', expand=True)[1]
         filtered_df['target_entrez'] = filtered_df.target.str.split('::', expand=True)[1]
 
-        filtered_df = filtered_df[["source_entrez", "edge", "target_entrez"]]
-        filtered_df.columns = ['source', 'edge', 'target']
+        if pcnet_filter:
+            def generate_merge_id(x):
+                sorted_id = sorted([x["source_entrez"], x["target_entrez"]])
+                merge_id = "_".join([str(element) for element in sorted_id])
+                return merge_id
 
-    if pcnet_filter and query_entity_types == "Gene:Gene":
-        filtered_df['source_entrez'] = filtered_df.source.str.split('::', expand=True)[1]
-        filtered_df['target_entrez'] = filtered_df.target.str.split('::', expand=True)[1]
+            filtered_df["merge_id"] = filtered_df.apply(generate_merge_id, axis=1)
+            # TODO: include the code here that reformats the pcnet file. Explain the cx to sif step.
+            # "/Users/dnsosa/Downloads/pcnet_reformatted_df.csv"
+            pcnet_df = pd.read_csv(f"{pcnet_dir}/pcnet_reformatted_df.csv")
 
-        def generate_merge_id(x):
-            sorted_id = sorted([x["source_entrez"], x["target_entrez"]])
-            merge_id = "_".join([str(element) for element in sorted_id])
-            return merge_id
+            filtered_df = filtered_df.merge(pcnet_df, how='inner', on='merge_id', sort=True)[["source_entrez_x", "edge_x", "target_entrez_x"]]
+            print(f"After including only pairs in PCnet--size of {dataset}: {len(filtered_df)} edges.")
 
-        filtered_df["merge_id"] = filtered_df.apply(generate_merge_id, axis=1)
-        # TODO: include the code here that reformats the pcnet file. Explain the cx to sif step.
-        # "/Users/dnsosa/Downloads/pcnet_reformatted_df.csv"
-        pcnet_df = pd.read_csv(f"{pcnet_dir}/pcnet_reformatted_df.csv")
+        else:
+            filtered_df = filtered_df[["source_entrez", "edge", "target_entrez"]]
 
-        filtered_df = filtered_df.merge(pcnet_df, how='inner', on='merge_id', sort=True)[["source_entrez_x", "edge_x", "target_entrez_x"]]
-        print(f"After including only pairs in PCnet--size of {dataset}: {len(filtered_df)} edges.")
         filtered_df.columns = ['source', 'edge', 'target']
 
     G = nx.from_pandas_edgelist(filtered_df, "source", "target", edge_attr=True, create_using=nx.MultiDiGraph())
+
+    if ("gg" in dataset) and dengue_filter:
+
+        dengue_genes = {'10417', '1107', '1524', '1669', '256987', '259197', '26289', '2634', '2992', '51161', '51225',
+                        '55799', '55809', '57156', '5797', '59084', '64222', '9254', '9402', '9580'}
+
+        G = undirect_multidigraph(G)
+        dengue_nodes_G = set(dengue_genes).intersection(set(G.nodes()))
+        # print(f"Dengue nodes: {dengue_nodes_G}")
+
+        dn_edges = []
+        for dengue_node in dengue_nodes_G:
+            visited_edges = list(nx.bfs_edges(G, source=dengue_node, depth_limit=dengue_expand_depth))
+
+            visited_edges_attrs = []
+            for e in visited_edges:
+                rel_data = G.get_edge_data(*e)
+                edge_rels = set([rel_data[k]['edge'] for k in rel_data.keys()])
+                for rel in edge_rels:
+                    visited_edges_attrs.append((e[0], e[1], rel))
+
+            dn_edges += visited_edges_attrs
+
+        dn_edges = list(set(dn_edges))
+        dn_edges = [(u, v, {'edge': r}) for u, v, r in dn_edges]
+        G_dengue = nx.MultiGraph()  # Note NOT directed
+        G_dengue.add_edges_from(dn_edges)
+
+        return G_dengue
 
     return G

@@ -53,7 +53,7 @@ class TestProcessingPipeline(unittest.TestCase):
         cls.nations = load_benchmark_data_three_parts("nations", DATA_DIR)
         cls.nations_degree_dict = dict(cls.nations.degree())
 
-    #@unittest.skip("Takes a while to process Nations, don't need to test all the time")
+    @unittest.skip("Takes a while to process Nations, don't need to test all the time")
     def test_graph_processing_pipeline_sparsify(self):
 
         # alpha 0, -1, 1
@@ -151,7 +151,7 @@ class TestProcessingPipeline(unittest.TestCase):
         self.assertEqual(len(pd.read_csv(output_train_path, sep='\t', header=None)), round(self.nations.number_of_edges()*0.2)-1)
         self.assertEqual(len(pd.read_csv(output_test_path, sep='\t', header=None)), 2)  # 2 edges is the little hack
 
-    #@unittest.skip("Takes a while to process Nations, don't need to test all the time")
+    @unittest.skip("Takes a while to process Nations, don't need to test all the time")
     def test_graph_processing_pipeline_contradictification(self):
         # Distance ones -- clg8
         params = {"dataset": None,

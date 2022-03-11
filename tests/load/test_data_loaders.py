@@ -5,6 +5,7 @@
 import unittest
 
 from kgemb_sens.load.data_loaders import load_benchmark_data_three_parts, load_drkg_data
+from kgemb_sens.analyze.metrics import calc_network_input_statistics
 
 DATA_DIR = "/Users/dnsosa/.data/pykeen/datasets"
 
@@ -54,3 +55,16 @@ class TestDataLoaders(unittest.TestCase):
 
         G_gnbr_gg_pcnet = load_drkg_data("gnbr_gg", DATA_DIR, pcnet_filter=True, pcnet_dir=DATA_DIR)
         self.assertEqual(G_gnbr_gg_pcnet.number_of_edges(), 17048)
+
+    def test_load_dengue_networks(self):
+        G_gnbr_gg_dengue1 = load_drkg_data("gnbr_gg", DATA_DIR, dengue_filter=True)  # expand 1
+        self.assertEqual(G_gnbr_gg_dengue1.number_of_edges(), 26)
+        num_cc = calc_network_input_statistics(G_gnbr_gg_dengue1, calc_diam=True)[2]
+        self.assertEqual(num_cc, 5)
+
+        G_gnbr_gg_pcnet_dengue2 = load_drkg_data("gnbr_gg", DATA_DIR,
+                                                 pcnet_filter=True, pcnet_dir=DATA_DIR,
+                                                 dengue_filter=True, dengue_expand_depth=2)
+        self.assertEqual(G_gnbr_gg_pcnet_dengue2.number_of_edges(), 94)
+        med_rel_count = calc_network_input_statistics(G_gnbr_gg_pcnet_dengue2, calc_diam=True)[4]
+        self.assertEqual(med_rel_count, 8)
