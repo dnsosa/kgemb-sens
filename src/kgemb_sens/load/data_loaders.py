@@ -88,6 +88,8 @@ def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCN
         filtered_df.columns = ['source', 'edge', 'target']
 
     if pcnet_filter and query_entity_types == "Gene:Gene":
+        filtered_df['source_entrez'] = filtered_df.source.str.split('::', expand=True)[1]
+        filtered_df['target_entrez'] = filtered_df.target.str.split('::', expand=True)[1]
 
         def generate_merge_id(x):
             sorted_id = sorted([x["source_entrez"], x["target_entrez"]])
