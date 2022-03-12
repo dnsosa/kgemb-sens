@@ -10,13 +10,13 @@ import numpy as np
 from collections import Counter
 
 from kgemb_sens.transform.contradiction_utilities import fill_with_contradictions, negative_completion, remove_contradictions
-from kgemb_sens.transform.graph_utilities import prob_dist_from_list, random_split_list, undirect_multidigraph
+from kgemb_sens.transform.graph_utilities import prob_dist, prob_dist_from_list, random_split_list, undirect_multidigraph
 from kgemb_sens.utilities import good_round
 
 
 def graph_processing_pipeline(G, i, params, out_dir,
                               all_valid_negations=None, edge_names=None, SEED=1,
-                              dist_mat=None, degree_dict=None):
+                              dist_mat=None, degree_dict=None, in_val_test_subset=None, val_test_sampler_alpha=0):
     print(f"Starting iteration {i + 1}")
     c = 1
     found_one = False
@@ -32,16 +32,22 @@ def graph_processing_pipeline(G, i, params, out_dir,
 
         np.random.seed((i + 1) * c * SEED)
 
-        if params["val_test_frac"] < 1:
-            val_test_set_size = good_round(params["val_test_frac"] * G.number_of_edges())
-        else:
-            val_test_set_size = int(params["val_test_frac"])
+        if in_val_test_subset is None:
+            if params["val_test_frac"] < 1:
+                val_test_set_size = good_round(params["val_test_frac"] * G.number_of_edges())
+            else:
+                val_test_set_size = int(params["val_test_frac"])
 
-        val_test_subset_idx = list(np.random.choice(G.number_of_edges(), val_test_set_size, replace=False))
-        val_test_subset = []
+            probabilities = list(prob_dist([], edges, None, degree_dict, "degree", G, alpha=val_test_sampler_alpha))
+            val_test_subset_idx = list(np.random.choice(len(edges), val_test_set_size, replace=False, p=probabilities))
 
-        for idx in val_test_subset_idx:
-            val_test_subset.append(edges[idx])
+            val_test_subset = []
+            for idx in val_test_subset_idx:
+                val_test_subset.append(edges[idx])
+
+        else:  # Especially for debugging
+            val_test_subset = in_val_test_subset
+
         val_subset, test_subset = random_split_list(val_test_subset, params["val_frac"])
 
         if params["prob_type"] == "distance":

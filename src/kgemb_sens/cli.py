@@ -29,6 +29,7 @@ DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/dataset
 @click.option('--pcnet_dir', 'pcnet_dir', default=DATA_DIR)
 @click.option('--val_test_frac', 'val_test_frac', default=1.0)
 @click.option('--val_frac', 'val_frac', default=0.0)
+@click.option('--vt_alpha', 'vt_alpha', default=0.0)
 @click.option('--sparsified_frac', 'sparsified_frac', default=0.0)
 @click.option('--alpha', 'alpha', default=0.0)
 @click.option('--n_resample', 'n_resample', default=100)
@@ -40,8 +41,9 @@ DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/dataset
 @click.option('--MODE', 'MODE', default='contrasparsify')
 @click.option('--model_name', 'model_name', default='transe')
 @click.option('--n_epochs', 'n_epochs', default=200)
-def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val_frac, sparsified_frac, alpha, n_resample, prob_type, flatten_kg,
-         neg_completion_frac, contradiction_frac, contra_remove_frac, MODE, model_name, n_epochs):
+def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val_frac, vt_alpha, sparsified_frac,
+         alpha, n_resample, prob_type, flatten_kg, neg_completion_frac, contradiction_frac, contra_remove_frac,
+         MODE, model_name, n_epochs):
     """Run main function."""
 
     SEED = 1005
@@ -100,10 +102,11 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
     for i in range(n_resample):
         print(f"\nSample {i}")
         data_paths, train_conditions_id, edge_divisions, G_out = graph_processing_pipeline(G, i, params, out_dir,
-                                                                      all_valid_negations,
-                                                                      all_rels, SEED,
-                                                                      dist_mat=dist_mat,
-                                                                      degree_dict=degree_dict)
+                                                                                           all_valid_negations,
+                                                                                           all_rels, SEED,
+                                                                                           dist_mat=dist_mat,
+                                                                                           degree_dict=degree_dict,
+                                                                                           val_test_sampler_alpha=vt_alpha)
         train_subset, test_subset, sparse_subset, new_contradictions, removed_contradictions = edge_divisions
         print("Now embedding results...")
         results_dict, run_id, head_pred_df, tail_pred_df = run_embed_pipeline(data_paths, i, params,
