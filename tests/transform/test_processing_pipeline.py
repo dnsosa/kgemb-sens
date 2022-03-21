@@ -11,10 +11,11 @@ import pandas as pd
 
 from collections import Counter
 
-from kgemb_sens.load.data_loaders import load_benchmark_data_three_parts
-from kgemb_sens.transform.graph_utilities import edge_dist, undirect_multidigraph
+from kgemb_sens.load.data_loaders import load_benchmark_data_three_parts, load_drkg_data
+from kgemb_sens.transform.graph_utilities import edge_dist, undirect_multidigraph, edge_degree
 from kgemb_sens.transform.contradiction_utilities import find_all_valid_negations
 from kgemb_sens.transform.processing_pipeline import graph_processing_pipeline
+from kgemb_sens.utilities import good_round
 
 DATA_DIR = "/Users/dnsosa/.data/pykeen/datasets"
 out_dir = os.path.join(os.path.dirname(__file__), "test_out_dir")
@@ -266,3 +267,43 @@ class TestProcessingPipeline(unittest.TestCase):
         self.assertEqual(G_out_rel_counter["NOT-embassy"], 7)
         self.assertEqual(G_out_rel_counter["accusation"], 22)
         self.assertEqual(G_out_rel_counter["NOT-accusation"], 1)
+
+    def test_graph_processing_pipeline_contradictification_gnbr(self):
+        # One GNBR test
+        params = {"dataset": "gnbr_drg",
+                  "pcnet_filter": None,
+                  "val_test_frac": 1,
+                  "val_frac": 0,
+                  "sparsified_frac": 0.25,
+                  "alpha": 0,
+                  "n_resample": 1,
+                  "prob_type": "degree",
+                  "flatten_kg": False,
+                  "neg_completion_frac": 0,
+                  "contradiction_frac": 0.5,
+                  "contra_remove_frac": 0,
+                  "MODE": "contrasparsify",
+                  "model_name": None,
+                  "n_epochs": None,
+                  "vt_alpha": 1000}
+
+        G_gnbr_drg = load_drkg_data("gnbr_drg", DATA_DIR)
+        G_gnbr_drg_undir = undirect_multidigraph(G_gnbr_drg)
+        edge_names = set([r for _, _, r in G_gnbr_drg.edges(data='edge')])
+        antonyms = [("E+", "E-"), ("A+", "A-")]
+        G_gnbr_drg_degree_dict = dict(G_gnbr_drg.degree())
+
+        data_paths, _, edge_divisions, G_out = graph_processing_pipeline(G_gnbr_drg, 0, params, out_dir,
+                                                                         edge_names=edge_names, antonyms=antonyms,
+                                                                         degree_dict=G_gnbr_drg_degree_dict)
+
+        test_edge = edge_divisions[1][0]
+        G_out_rel_counter = Counter([r for _, _, _, r in G_out.edges(data='edge', keys=True)])
+        G_in_rel_counter = Counter([r for _, _, _, r in G_gnbr_drg.edges(data='edge', keys=True)])
+        e_deg = edge_degree(G_gnbr_drg_undir, test_edge, G_gnbr_drg_degree_dict)
+        e_degs = [edge_degree(G_gnbr_drg_undir, e, G_gnbr_drg_degree_dict) for e in G_gnbr_drg.edges(data='edge')]
+
+        self.assertEqual(G_out_rel_counter["E+"], G_in_rel_counter["E+"] + good_round(.5*G_in_rel_counter["E-"]))
+        self.assertEqual(G_out_rel_counter["A-"], G_in_rel_counter["A-"] + good_round(.5*G_in_rel_counter["A+"]))
+        self.assertEqual(G_out_rel_counter["N"], G_in_rel_counter["N"])
+        self.assertEqual(e_deg, max(e_degs))

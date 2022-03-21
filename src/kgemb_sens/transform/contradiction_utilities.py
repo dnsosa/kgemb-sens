@@ -5,7 +5,7 @@
 import itertools
 import numpy as np
 
-from kgemb_sens.transform.graph_utilities import prob_dist_from_list
+from kgemb_sens.transform.graph_utilities import prob_dist_from_list, undirect_multidigraph
 from kgemb_sens.utilities import good_round
 
 
@@ -52,12 +52,19 @@ def negative_completion(G, all_valid_negations, edge_names, neg_completion_frac,
     return G_complete
 
 
-def generate_converse_edges_from(edge_list):
-    def flip_relation(relation):
-        if relation.startswith("NOT-"):
-            converse_relation = relation.split("NOT-")[1]
+def generate_converse_edges_from(edge_list, antonym_dict=None):
+    def flip_relation(relation, antonym_lookup):
+        if antonym_dict is None:
+            if relation.startswith("NOT-"):
+                converse_relation = relation.split("NOT-")[1]
+            else:
+                converse_relation = f"NOT-{relation}"
         else:
-            converse_relation = f"NOT-{relation}"
+            if relation in antonym_lookup:
+                converse_relation = antonym_lookup[relation]
+            else:
+                converse_relation = relation
+
         return converse_relation
 
     out_list = []
@@ -66,7 +73,7 @@ def generate_converse_edges_from(edge_list):
             if type(e[-1]) == dict:
                 if 'edge' in e[-1] and len(e[-1].keys()) == 1:
                     # TODO: Revisit if we ever want to deal with multiple edge attributes at once. Need to just update relevant k,v pair. This will be wrong in that case.
-                    new_relation = {'edge': flip_relation(e[-1]['edge'])}
+                    new_relation = {'edge': flip_relation(e[-1]['edge'], antonym_dict)}
                 else:
                     new_relation = e[-1]
 
@@ -79,7 +86,7 @@ def generate_converse_edges_from(edge_list):
                     return None
             else:
                 print("WARNING: You're flipping an edge where the attribute isn't a dictionary... may cause confusion.")
-                new_relation = flip_relation(e[-1])
+                new_relation = flip_relation(e[-1], antonym_dict)
                 new_edge = (e[0], e[1], new_relation)  # HOPE TO NEVER GET THIS FORMAT
         elif len(e) == 2:
             new_edge = e
@@ -92,17 +99,32 @@ def generate_converse_edges_from(edge_list):
     return out_list
 
 
-def fill_with_contradictions(G, edge_names, val_test_subset, params, dist_mat=None, degree_dict=None, SEED=None):
+def fill_with_contradictions(G, edge_names, val_test_subset, params, G_undir=None, dist_mat=None, degree_dict=None, antonyms=None, SEED=None):
     np.random.seed(SEED)
+    antonym_dict = None
+    if antonyms is None:
+        edge_names = set([remove_prefix_nots(edge_name) for edge_name in edge_names])
+    else:
+        antonym_dict = {}
+        for pair in antonyms:
+            antonym_dict[pair[0]] = pair[1]
+            antonym_dict[pair[1]] = pair[0]
+        edge_names = set(list(antonym_dict.keys()))
 
-    edge_names = set([remove_prefix_nots(edge_name) for edge_name in edge_names])
+    if G_undir is None:
+        G_undir = undirect_multidigraph(G)
+
     G_contra = G.copy()
 
     all_sampled_rel_edges = []
     all_contradictory_edges = []
 
     for edge_name in edge_names:
-        rel_edges = [e for e in G_contra.edges(data=True, keys=True) if ((e[-1]['edge'] == edge_name) or (e[-1]['edge'] == f"NOT-{edge_name}"))]
+        if antonyms is None:
+            rel_edges = [e for e in G_contra.edges(data=True, keys=True) if ((e[-1]['edge'] == edge_name) or (e[-1]['edge'] == f"NOT-{edge_name}"))]
+        else:
+            rel_edges = [e for e in G_contra.edges(data=True, keys=True) if (e[-1]['edge'] == edge_name)]
+
         n_rel_edges = len(rel_edges)
 
         if n_rel_edges == 0:
@@ -113,14 +135,14 @@ def fill_with_contradictions(G, edge_names, val_test_subset, params, dist_mat=No
                                                 rel_edges,
                                                 dist_mat=dist_mat,
                                                 prob_type="distance",
-                                                graph=G_contra,
+                                                graph=G_undir,
                                                 alpha=params["alpha"])
         elif params["prob_type"] == "degree":
             probabilities = prob_dist_from_list(val_test_subset,
                                                 rel_edges,
                                                 degree_dict=degree_dict,
                                                 prob_type="degree",
-                                                graph=G_contra,
+                                                graph=G_undir,
                                                 alpha=params["alpha"])
         nz_probs = np.count_nonzero(probabilities)
 
@@ -132,7 +154,7 @@ def fill_with_contradictions(G, edge_names, val_test_subset, params, dist_mat=No
         for idx in sampled_rel_edges_idx:
             sampled_rel_edges.append(rel_edges[idx])
 
-        all_contradictory_edges += generate_converse_edges_from(sampled_rel_edges)
+        all_contradictory_edges += generate_converse_edges_from(sampled_rel_edges, antonym_dict=antonym_dict)
         all_sampled_rel_edges += sampled_rel_edges
 
     # Need to update the keys of the newly added edges

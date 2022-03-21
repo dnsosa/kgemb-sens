@@ -20,7 +20,6 @@ from kgemb_sens.transform.processing_pipeline import graph_processing_pipeline
 
 DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
 
-
 @click.command()
 @click.option('--output_folder', 'out_dir')
 @click.option('--data_dir', 'data_dir', default=DATA_DIR)
@@ -49,7 +48,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
     SEED = 1005
     np.random.seed(SEED)
 
-    print("Made it here")
+    print("In the CLI Main function. Seed is set. Imports are imported.")
     os.makedirs(out_dir, exist_ok=True)
 
     params = {"dataset": dataset,
@@ -74,6 +73,17 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
         G = load_benchmark_data_three_parts(dataset, data_dir)
     elif dataset in ["gnbr_gg", "gnbr_drdz", "gnbr_drg", "drugbank_drdz", "drugbank_drg", "string_gg"]:
         G = load_drkg_data(dataset, data_dir, pcnet_filter, pcnet_dir)
+        # Declare the dataset's antonym pairs. TODO: Should this be somewhere else?
+        if dataset == "gnbr_drg":
+            antonyms = [("E+", "E-"), ("A+", "A-")]
+        elif dataset == "gnbr_drdz":
+            antonyms = [("T", "J")]
+        else:
+            antonyms = None
+
+    G_undir = undirect_multidigraph(G)
+
+
     print("\nData load and network creation complete.")
     all_valid_negations = []
     all_rels = set([r for _, _, r in G.edges(data='edge')])
@@ -87,13 +97,13 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
 
     # Precompute distance matrix if requested because it's expensive
     if (prob_type == "distance") and (alpha != 0):
-        dist_mat = dict(nx.all_pairs_bellman_ford_path_length(nx.Graph(undirect_multidigraph(G))))
+        dist_mat = dict(nx.all_pairs_bellman_ford_path_length(nx.Graph(G_undir)))
     else:
         dist_mat = None
 
     # Precompute degree dictionary
     if flatten_kg:
-        G_flat = nx.Graph(undirect_multidigraph(G))
+        G_flat = nx.Graph(G_undir)
         degree_dict = dict(G_flat.degree())
     else:
         degree_dict = dict(G.degree())
@@ -104,6 +114,8 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
         data_paths, train_conditions_id, edge_divisions, G_out = graph_processing_pipeline(G, i, params, out_dir,
                                                                                            all_valid_negations,
                                                                                            all_rels, SEED,
+                                                                                           G_undir=G_undir,
+                                                                                           antonyms=antonyms,
                                                                                            dist_mat=dist_mat,
                                                                                            degree_dict=degree_dict,
                                                                                            val_test_sampler_alpha=vt_alpha)
@@ -112,7 +124,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
         results_dict, run_id, head_pred_df, tail_pred_df = run_embed_pipeline(data_paths, i, params,
                                                                               train_conditions_id,
                                                                               G_out, test_subset[0],
-                                                                              degree_dict)
+                                                                              degree_dict, G_undir=G_undir)
 
         # TODO: output embeddings from training
 
@@ -134,7 +146,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
     # Calculate network stats
     # Input network
     calc_diam = (G.number_of_edges() < 100)
-    network_stats_results = calc_network_input_statistics(G, calc_diam)
+    network_stats_results = calc_network_input_statistics(G, calc_diam, G_undir=G_undir)
     network_stats_dict = {"n_ent_network": network_stats_results[0],
                           "n_rel_network": network_stats_results[1],
                           "n_conn_comps": network_stats_results[2],
@@ -143,7 +155,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
                           "min_rel_count": network_stats_results[5]}
 
     # Network post modification
-    network_stats_results_post = calc_network_input_statistics(G_out, calc_diam)
+    network_stats_results_post = calc_network_input_statistics(G_out, calc_diam, G_undir=G_undir)
     network_stats_dict_post = {"post_n_ent_network": network_stats_results_post[0],
                                "post_n_rel_network": network_stats_results_post[1],
                                "post_n_conn_comps": network_stats_results_post[2],

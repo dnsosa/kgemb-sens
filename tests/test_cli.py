@@ -36,6 +36,7 @@ class TestCli(unittest.TestCase):
         result = runner.invoke(cli.main, args)
         self.assertEqual(result.exit_code, 0)
         save_dir = "/Users/dnsosa/Desktop/AltmanLab/KGEmbSensitivity/kgemb-sens/tests/analyze/analyze_test_out/results/contrasparsify_alpha0.0_probtypedegree_flatFalse_sparsefrac0.0_negCompFrac0.0_contraFrac1.0_contraRemFrac0.5_vtfrac1.0_modeltranse"
+        # save_dir = f"{OUT_DIR}/results/TEST_save_dir"
         net_stats_path = os.path.join(save_dir, "network_stats.tsv")
         self.assertTrue(os.path.exists(net_stats_path))
         net_stats_df = pd.read_csv(net_stats_path, sep='\t')
@@ -55,3 +56,5 @@ class TestCli(unittest.TestCase):
         self.assertTrue(os.path.exists(head_preds))
         tail_preds = os.path.join(save_dir, "tail_pred_run_0.tsv")
         self.assertTrue(os.path.exists(tail_preds))
+
+

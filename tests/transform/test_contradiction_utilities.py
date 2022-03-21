@@ -15,6 +15,7 @@ from kgemb_sens.load.data_loaders import load_benchmark_data_three_parts
 from kgemb_sens.transform.graph_utilities import edge_dist, undirect_multidigraph
 from kgemb_sens.transform.contradiction_utilities import find_all_valid_negations, negative_completion,\
     generate_converse_edges_from, fill_with_contradictions, remove_contradictions
+from kgemb_sens.utilities import good_round
 
 # from .resources.test_processing_pipeline_helpers import num_
 
@@ -123,6 +124,19 @@ class TestProcessingPipeline(unittest.TestCase):
         ne8 = (5, 8, None, {'edge': 'binds'})
         self.assertEqual(generate_converse_edges_from([e8]), [ne8])
 
+        antonym_dict = {"binds": "repels", "repels": "binds"}
+        e9 = (1, 2, None, {'edge': 'binds'})
+        e10 = (3, 4, None, {'edge': 'repels'})
+        e11 = (5, 6, None, {'edge': 'agonizes'})
+
+        ne9 = (1, 2, None, {'edge': 'repels'})
+        ne10 = (3, 4, None, {'edge': 'binds'})
+        ne11 = (5, 6, None, {'edge': 'agonizes'})
+        edge_list = [e9, e10, e11]
+        nedge_list = [ne9, ne10, ne11]
+        converse_edge_list = generate_converse_edges_from(edge_list, antonym_dict)
+        self.assertEqual(converse_edge_list, nedge_list)
+
     def test_fill_with_contradictions(self):
         # DEGREE
         params = {'prob_type': "degree", 'alpha': 2, 'contradiction_frac': 0.5}
@@ -130,8 +144,8 @@ class TestProcessingPipeline(unittest.TestCase):
         val_test_subset = [(0, 1, 0, {'edge': 'test'})]
         G_contra, all_sampled_rel_edges, all_contradictory_edges = fill_with_contradictions(self.cc3, edge_names,
                                                                                             val_test_subset, params,
-                                                                                            self.cc3_dist_mat,
-                                                                                            self.cc3_degree_dict,
+                                                                                            dist_mat=self.cc3_dist_mat,
+                                                                                            degree_dict=self.cc3_degree_dict,
                                                                                             SEED=SEED)
         G_contra_rels_counter = Counter([r for _, _, r in G_contra.edges(data='edge')])
         self.assertEqual(G_contra.number_of_edges(), 32)
@@ -147,8 +161,7 @@ class TestProcessingPipeline(unittest.TestCase):
         val_test_subset = [(0, 1, 0, {'edge': 'test'})]
         G_contra, all_sampled_rel_edges, all_contradictory_edges = fill_with_contradictions(self.cc3, edge_names,
                                                                                             val_test_subset, params,
-                                                                                            None,  # part of test
-                                                                                            self.cc3_degree_dict,
+                                                                                            degree_dict=self.cc3_degree_dict,
                                                                                             SEED=SEED)
         G_contra_rels_counter = Counter([r for _, _, r in G_contra.edges(data='edge')])
         contra_edges_nodes = set([u for u, _, _, _ in all_contradictory_edges] + [v for _, v, _, _ in all_contradictory_edges])
@@ -163,8 +176,7 @@ class TestProcessingPipeline(unittest.TestCase):
         val_test_subset = [("s", 0, 0, {'edge': 'test'})]
         G_contra, all_sampled_rel_edges, all_contradictory_edges = fill_with_contradictions(self.clg8, edge_names,
                                                                                             val_test_subset, params,
-                                                                                            self.clg8_dist_mat,
-                                                                                            None,  # part of test
+                                                                                            dist_mat=self.clg8_dist_mat,
                                                                                             SEED=SEED)
         G_contra_rels_counter = Counter([r for _, _, r in G_contra.edges(data='edge')])
         contra_edges_nodes = set([u for u, _, _, _ in all_contradictory_edges] + [v for _, v, _, _ in all_contradictory_edges])
@@ -186,8 +198,8 @@ class TestProcessingPipeline(unittest.TestCase):
 
         G_contra, all_sampled_rel_edges, all_contradictory_edges = fill_with_contradictions(clg8_nc, edge_names,
                                                                                             val_test_subset, params,
-                                                                                            self.clg8_dist_mat,
-                                                                                            self.clg8_degree_dict,
+                                                                                            dist_mat=self.clg8_dist_mat,
+                                                                                            degree_dict=self.clg8_degree_dict,
                                                                                             SEED=SEED)
         G_contra_rels_counter = Counter([r for _, _, r in G_contra.edges(data='edge')])
         contra_edges_nodes = set([u for u, _, _, _ in all_contradictory_edges] + [v for _, v, _, _ in all_contradictory_edges])
@@ -215,8 +227,7 @@ class TestProcessingPipeline(unittest.TestCase):
         val_test_subset = [("netherlands", "uk", 0, {'edge': 'militaryalliance'})]
         G_contra, all_sampled_rel_edges, all_contradictory_edges = fill_with_contradictions(self.nations, edge_names,
                                                                                             val_test_subset, params,
-                                                                                            None,
-                                                                                            self.nations_degree_dict,
+                                                                                            degree_dict=self.nations_degree_dict,
                                                                                             SEED=SEED)
         G_contra_rels_counter = Counter([r for _, _, r in G_contra.edges(data='edge')])
         self.assertEqual(G_contra.number_of_edges(), 2002)
@@ -235,3 +246,17 @@ class TestProcessingPipeline(unittest.TestCase):
         self.assertFalse("NOT-exports3" in edge_key_rels)
         self.assertFalse("NOT-embassy" in edge_key_rels)
         self.assertFalse("NOT-accusation" in edge_key_rels)
+
+        # Do one with antonyms
+        params["contradiction_frac"] = 0.75
+        antonym_set = [("embassy", "exports3"), ("exports1", "accusation")]
+        G_contra, all_sampled_rel_edges, all_contradictory_edges = fill_with_contradictions(self.nations, edge_names,
+                                                                                            val_test_subset, params,
+                                                                                            degree_dict=self.nations_degree_dict,
+                                                                                            antonyms=antonym_set,
+                                                                                            SEED=SEED)
+
+        G_contra_rels_counter = Counter([r for _, _, r in G_contra.edges(data='edge')])
+        nations_rels_counter = Counter([r for _, _, r in self.nations.edges(data='edge')])
+        self.assertEqual(G_contra_rels_counter["embassy"], nations_rels_counter["embassy"] + good_round(.75*nations_rels_counter["exports3"]))
+        self.assertEqual(G_contra_rels_counter["accusation"], nations_rels_counter["accusation"] + good_round(.75*nations_rels_counter["exports1"]))

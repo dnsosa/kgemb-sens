@@ -42,11 +42,12 @@ def edge_dist(e1, e2, dist_mat):
     return min(d1121, d1122, d1221, d1222) + 1
 
 
-def edge_degree(G, e, degree_dict):
+def edge_degree(G_undir, e, degree_dict):
     # TODO: Check that the edge is in the graph
     # NOTE: Ignores directionality
     # NOTE: Assumes the edge is in the graph
-    return (degree_dict[e[0]] - 1) + (degree_dict[e[1]] - undirect_multidigraph(G).number_of_edges(e[0], e[1]))
+    ## G_undir = undirect_multidigraph(G)
+    return (degree_dict[e[0]] - 1) + (degree_dict[e[1]] - G_undir.number_of_edges(e[0], e[1]))
 
 
 def prob_dist(edge,
@@ -75,6 +76,7 @@ def prob_dist(edge,
     elif prob_type == "degree":
         if degree_dict is None:
             print("No distance matrix provided!")
+        # NOTE: Assumes that graph is the undirected version
         u_dist = np.array([edge_degree(graph, other_edge, degree_dict) for other_edge in all_edges])
         # Degree priority parameter: positive = prefer hubs, 0 = uniform, negative = deprioritize hubs
         u_dist = u_dist ** (float(alpha))

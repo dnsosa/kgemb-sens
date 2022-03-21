@@ -22,7 +22,8 @@ class TestGraphUtilities(unittest.TestCase):
         # Circular ladder graph with two leaves
         cls.clg8 = nx.MultiDiGraph(nx.circular_ladder_graph(8))
         cls.clg8.add_edges_from([("s", 0), (4, "t")])
-        cls.clg8_dist_mat = dict(nx.all_pairs_bellman_ford_path_length(nx.Graph(undirect_multidigraph(cls.clg8))))
+        cls.clg8_undir = undirect_multidigraph(cls.clg8)
+        cls.clg8_dist_mat = dict(nx.all_pairs_bellman_ford_path_length(nx.Graph(cls.clg8_undir)))
         cls.clg8_degree_dict = dict(cls.clg8.degree())
 
         # Graph of 3 complete connected components: size 4, 3, and 2. Attributes added including one double attribute
@@ -30,13 +31,14 @@ class TestGraphUtilities(unittest.TestCase):
                                   nx.complete_graph(range(4, 7)),
                                   nx.complete_graph(range(7, 9))])
         cls.cc3 = nx.MultiDiGraph(cls.cc3)
-        cls.cc3_dist_mat = dict(nx.all_pairs_bellman_ford_path_length(nx.Graph(undirect_multidigraph(cls.cc3))))
         attrs_dict = {}
         for e in cls.cc3.edges(keys=True):
             attrs_dict[e] = {"edge": "test"}
         nx.set_edge_attributes(cls.cc3, attrs_dict)
         cls.cc3.add_edges_from([(0, 1, {"edge": "blah"})])
         cls.cc3_degree_dict = dict(cls.cc3.degree())
+        cls.cc3_undir = undirect_multidigraph(cls.cc3)
+        cls.cc3_dist_mat = dict(nx.all_pairs_bellman_ford_path_length(nx.Graph(cls.cc3_undir)))
 
         ### Nations
         ##cls.nations = load_benchmark_data_three_parts("nations", DATA_DIR)
@@ -72,14 +74,14 @@ class TestGraphUtilities(unittest.TestCase):
         self.assertEqual(dist10, 0)
 
     def test_edge_degree(self):
-        deg1 = edge_degree(self.clg8, (0, "s", {"edge": "Test"}), self.clg8_degree_dict)
+        deg1 = edge_degree(self.clg8_undir, (0, "s", {"edge": "Test"}), self.clg8_degree_dict)
         self.assertEqual(deg1, 6)
-        deg2 = edge_degree(self.cc3, (0, 1, {"edge": "blah"}), self.cc3_degree_dict)
+        deg2 = edge_degree(self.cc3_undir, (0, 1, {"edge": "blah"}), self.cc3_degree_dict)
         self.assertEqual(deg2, 10)
         # TODO: Note: not in graph. Behavior?
-        deg3 = edge_degree(self.cc3, (2, 3, {"edge": "HECK"}), self.cc3_degree_dict)
+        deg3 = edge_degree(self.cc3_undir, (2, 3, {"edge": "HECK"}), self.cc3_degree_dict)
         self.assertEqual(deg3, 9)
-        deg4 = edge_degree(self.cc3, (8, 7, {"edge": "AnotherHeck"}), self.cc3_degree_dict)
+        deg4 = edge_degree(self.cc3_undir, (8, 7, {"edge": "AnotherHeck"}), self.cc3_degree_dict)
         self.assertEqual(deg4, 1)
 
     def test_prob_dist(self):
@@ -91,7 +93,7 @@ class TestGraphUtilities(unittest.TestCase):
                             self.cc3_dist_mat,
                             self.cc3_degree_dict,
                             "distance",
-                            self.cc3,
+                            self.cc3_undir,
                             alpha=0)
         cc3_pd1 = dict(zip(list(self.cc3.edges(data="edge")), cc3_pd1))
         self.assertEqual(sum(cc3_pd1.values()), 1)
@@ -105,7 +107,7 @@ class TestGraphUtilities(unittest.TestCase):
                               self.cc3_dist_mat,
                               self.cc3_degree_dict,
                               "distance",
-                              self.cc3,
+                              self.cc3_undir,
                               alpha=0)
         cc3_pd2_w = dict(zip(list(self.cc3.edges(data="edge")), cc3_pd2_w))
         self.assertAlmostEqual(cc3_pd2_w[(5, 4, "test")], 0.16667, places=3)
@@ -116,7 +118,7 @@ class TestGraphUtilities(unittest.TestCase):
                             self.cc3_dist_mat,
                             self.cc3_degree_dict,
                             "distance",
-                            self.cc3,
+                            self.cc3_undir,
                             alpha=0)
         cc3_pd2 = dict(zip(list(self.cc3.edges(data="edge")), cc3_pd2))
         self.assertEqual(cc3_pd2[(5, 4, "test")], 0)
@@ -128,7 +130,7 @@ class TestGraphUtilities(unittest.TestCase):
                           self.clg8_dist_mat,
                           self.clg8_degree_dict,
                           "distance",
-                          self.clg8,
+                          self.clg8_undir,
                           alpha=in_alpha)
             p = dict(zip(list(self.clg8.edges(data="edge")), p))
             return p
@@ -169,7 +171,7 @@ class TestGraphUtilities(unittest.TestCase):
                             self.cc3_dist_mat,
                             self.cc3_degree_dict,
                             "degree",
-                            self.cc3,
+                            self.cc3_undir,
                             alpha=-1)
         cc3_pd3 = dict(zip(list(self.cc3.edges(data="edge")), cc3_pd3))
         cc3_pd3_top_edges = get_max_prob_edges(cc3_pd3)
@@ -185,7 +187,7 @@ class TestGraphUtilities(unittest.TestCase):
                             self.cc3_dist_mat,
                             self.cc3_degree_dict,
                             "degree",
-                            self.cc3,
+                            self.cc3_undir,
                             alpha=1)
         cc3_pd4 = dict(zip(list(self.cc3.edges(data="edge")), cc3_pd4))
         cc3_pd4_top_edges = get_max_prob_edges(cc3_pd4)
@@ -198,7 +200,7 @@ class TestGraphUtilities(unittest.TestCase):
                              self.clg8_dist_mat,
                              self.clg8_degree_dict,
                              "degree",
-                             self.clg8,
+                             self.clg8_undir,
                              alpha=100)
         clg8_pd6 = dict(zip(list(self.clg8.edges(data="edge")), clg8_pd6))
         clg8_pd6_top_edges = get_max_prob_edges(clg8_pd6)

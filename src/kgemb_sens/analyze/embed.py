@@ -8,9 +8,13 @@ from pykeen.pipeline import pipeline
 from pykeen.models.predict import get_tail_prediction_df, get_head_prediction_df
 
 from kgemb_sens.analyze.metrics import calc_edge_input_statistics, calc_output_statistics
+from kgemb_sens.transform.graph_utilities import undirect_multidigraph
 
 
-def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge, degree_dict=None):
+def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge, degree_dict=None, G_undir=None):
+    if G_undir is None:
+        G_undir = undirect_multidigraph(G)
+
     if len(data_paths) == 2:
         new_train_path, new_test_path = data_paths
     elif len(data_paths) == 3:
@@ -37,10 +41,10 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge,
     test_triple.columns = ["source", "edge", "target"]
     u, r, v = test_triple['source'][0], test_triple['edge'][0], test_triple['target'][0]
 
-    edge_min_node_degree, edge_rel_count, e_deg = calc_edge_input_statistics(G, test_edge, degree_dict)
+    edge_min_node_degree, edge_rel_count, e_deg = calc_edge_input_statistics(G, test_edge, degree_dict, G_undir=G_undir)
 
-    head_prediction_df = get_head_prediction_df(result.model, r, v, triples_factory=result.training)
-    tail_prediction_df = get_tail_prediction_df(result.model, u, r, triples_factory=result.training)
+    head_prediction_df = get_head_prediction_df(result.model, str(r), str(v), triples_factory=result.training)
+    tail_prediction_df = get_tail_prediction_df(result.model, str(u), str(r), triples_factory=result.training)
 
     head_deg_rank_corr = calc_output_statistics(list(head_prediction_df.head_label), degree_dict)
     tail_deg_rank_corr = calc_output_statistics(list(tail_prediction_df.tail_label), degree_dict)
