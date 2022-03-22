@@ -75,7 +75,7 @@ def prob_dist(edge,
 
     elif prob_type == "degree":
         if degree_dict is None:
-            print("No distance matrix provided!")
+            print("No degree dict provided!")
         # NOTE: Assumes that graph is the undirected version
         u_dist = np.array([edge_degree(graph, other_edge, degree_dict) for other_edge in all_edges])
         # Degree priority parameter: positive = prefer hubs, 0 = uniform, negative = deprioritize hubs

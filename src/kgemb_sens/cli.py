@@ -20,6 +20,7 @@ from kgemb_sens.transform.processing_pipeline import graph_processing_pipeline
 
 DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
 
+
 @click.command()
 @click.option('--output_folder', 'out_dir')
 @click.option('--data_dir', 'data_dir', default=DATA_DIR)
@@ -55,6 +56,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
               "pcnet_filter": pcnet_filter,
               "val_test_frac": val_test_frac,
               "val_frac": val_frac,
+              "vt_alpha": vt_alpha,
               "sparsified_frac": sparsified_frac,
               "alpha": alpha,
               "n_resample": n_resample,
@@ -82,7 +84,6 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
             antonyms = None
 
     G_undir = undirect_multidigraph(G)
-
 
     print("\nData load and network creation complete.")
     all_valid_negations = []
@@ -117,8 +118,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
                                                                                            G_undir=G_undir,
                                                                                            antonyms=antonyms,
                                                                                            dist_mat=dist_mat,
-                                                                                           degree_dict=degree_dict,
-                                                                                           val_test_sampler_alpha=vt_alpha)
+                                                                                           degree_dict=degree_dict)
         train_subset, test_subset, sparse_subset, new_contradictions, removed_contradictions = edge_divisions
         print("Now embedding results...")
         results_dict, run_id, head_pred_df, tail_pred_df = run_embed_pipeline(data_paths, i, params,
