@@ -166,7 +166,7 @@ def graph_processing_pipeline(G, i, params, out_dir,
     G_out.remove_edges_from(val_test_subset)
     G_out_train = G_out
 
-    train_conditions_id = f"{params['MODE']}_alpha{params['alpha']}_probtype{params['prob_type']}_flat{params['flatten_kg']}_sparsefrac{params['sparsified_frac']}_negCompFrac{params['neg_completion_frac']}_contraFrac{params['contradiction_frac']}_contraRemFrac{params['contra_remove_frac']}_vtfrac{params['val_test_frac']}"
+    train_conditions_id = f"{params['MODE']}_alpha{params['alpha']}_probtype{params['prob_type']}_flat{params['flatten_kg']}_sparsefrac{params['sparsified_frac']}_negCompFrac{params['neg_completion_frac']}_contraFrac{params['contradiction_frac']}_contraRemFrac{params['contra_remove_frac']}_vtfrac{params['val_test_frac']}_vtalpha{params['vt_alpha']}"
     os.makedirs(out_dir, exist_ok=True)
 
     new_test_path = f"{out_dir}/test_{train_conditions_id}.tsv"
