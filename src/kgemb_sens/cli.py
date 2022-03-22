@@ -70,6 +70,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
               "n_epochs": n_epochs}
 
     # LOAD DATA
+    antonyms = None
     print("Loading data...")
     if dataset in ["nations", "umls", "countries", "kinships"]:
         G = load_benchmark_data_three_parts(dataset, data_dir)
@@ -80,8 +81,6 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
             antonyms = [("E+", "E-"), ("A+", "A-")]
         elif dataset == "gnbr_drdz":
             antonyms = [("T", "J")]
-        else:
-            antonyms = None
 
     G_undir = undirect_multidigraph(G)
 
