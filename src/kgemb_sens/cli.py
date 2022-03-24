@@ -27,6 +27,8 @@ DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/dataset
 @click.option('--dataset', 'dataset', default='nations')
 @click.option('--pcnet_filter/--no-pcnet_filter', 'pcnet_filter', default=False)
 @click.option('--pcnet_dir', 'pcnet_dir', default=DATA_DIR)
+@click.option('--dengue_filter/--no-dengue_filter', 'dengue_filter', default=False)
+@click.option('--dengue_expand_depth', 'dengue_expand_depth', default=1)
 @click.option('--val_test_frac', 'val_test_frac', default=1.0)
 @click.option('--val_frac', 'val_frac', default=0.0)
 @click.option('--vt_alpha', 'vt_alpha', default=0.0)
@@ -41,8 +43,9 @@ DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/dataset
 @click.option('--MODE', 'MODE', default='contrasparsify')
 @click.option('--model_name', 'model_name', default='transe')
 @click.option('--n_epochs', 'n_epochs', default=200)
-def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val_frac, vt_alpha, sparsified_frac,
-         alpha, n_resample, prob_type, flatten_kg, neg_completion_frac, contradiction_frac, contra_remove_frac,
+def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, dengue_filter, dengue_expand_depth,
+         val_test_frac, val_frac, vt_alpha, sparsified_frac, alpha, n_resample, prob_type, flatten_kg,
+         neg_completion_frac, contradiction_frac, contra_remove_frac,
          MODE, model_name, n_epochs):
     """Run main function."""
 
@@ -75,7 +78,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
     if dataset in ["nations", "umls", "countries", "kinships"]:
         G = load_benchmark_data_three_parts(dataset, data_dir)
     elif dataset in ["gnbr_gg", "gnbr_drdz", "gnbr_drg", "drugbank_drdz", "drugbank_drg", "string_gg"]:
-        G = load_drkg_data(dataset, data_dir, pcnet_filter, pcnet_dir)
+        G = load_drkg_data(dataset, data_dir, pcnet_filter, pcnet_dir, dengue_filter, dengue_expand_depth)
         # Declare the dataset's antonym pairs. TODO: Should this be somewhere else?
         if dataset == "gnbr_drg":
             antonyms = [("E+", "E-"), ("A+", "A-")]
@@ -118,15 +121,19 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
                                                                                            antonyms=antonyms,
                                                                                            dist_mat=dist_mat,
                                                                                            degree_dict=degree_dict)
+
+        G_out_undir = undirect_multidigraph(G)
+        G_out_degree_dict = dict(G_out.degree())
+
         train_subset, test_subset, sparse_subset, new_contradictions, removed_contradictions = edge_divisions
         print("Now embedding results...")
         results_dict, run_id, head_pred_df, tail_pred_df = run_embed_pipeline(data_paths, i, params,
                                                                               train_conditions_id,
                                                                               G_out, test_subset[0],
-                                                                              degree_dict, G_undir=G_undir)
+                                                                              G_out_degree_dict,
+                                                                              G_undir=G_out_undir)
 
         # TODO: output embeddings from training
-
         # TODO: Doesn't make sense to keep reassigning this every loop. Create the run ID sooner
         # Make save directory
         save_dir = f"{out_dir}/results/{run_id}/"  # this directory
@@ -140,31 +147,33 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, val_test_frac, val
 
     print("\nFinished with all resamples!")
 
-    #print(f"\mSaving all results and metrics to: {save_dir}")
+    # print(f"\mSaving all results and metrics to: {save_dir}")
 
     # Calculate network stats
     # Input network
-    calc_diam = (G.number_of_edges() < 100)
-    network_stats_results = calc_network_input_statistics(G, calc_diam, G_undir=G_undir)
+    calc_expensive = (G.number_of_edges() < 500)
+    network_stats_results = calc_network_input_statistics(G, calc_expensive, G_undir=G_undir)
     network_stats_dict = {"n_ent_network": network_stats_results[0],
                           "n_rel_network": network_stats_results[1],
-                          "n_conn_comps": network_stats_results[2],
-                          "avg_cc": network_stats_results[3],
+                          "n_triples": network_stats_results[2],
+                          "n_conn_comps": network_stats_results[3],
                           "med_rel_count": network_stats_results[4],
                           "min_rel_count": network_stats_results[5]}
 
     # Network post modification
-    network_stats_results_post = calc_network_input_statistics(G_out, calc_diam, G_undir=G_undir)
-    network_stats_dict_post = {"post_n_ent_network": network_stats_results_post[0],
-                               "post_n_rel_network": network_stats_results_post[1],
-                               "post_n_conn_comps": network_stats_results_post[2],
-                               "post_avg_cc": network_stats_results_post[3],
-                               "post_med_rel_count": network_stats_results_post[4],
-                               "post_min_rel_count": network_stats_results_post[5]}
+    # network_stats_results_post = calc_network_input_statistics(G_out, calc_expensive, G_undir=G_undir)
+    # network_stats_dict_post = {"post_n_ent_network": network_stats_results_post[0],
+    #                            "post_n_rel_network": network_stats_results_post[1],
+    #                            "post_n_triples": network_stats_results_post[2],
+    #                            "post_n_conn_comps": network_stats_results_post[3],
+    #                            "post_med_rel_count": network_stats_results_post[4],
+    #                            "post_min_rel_count": network_stats_results_post[5]}
 
-    if calc_diam:
-        network_stats_dict["diam"] = network_stats_results[6]
-        network_stats_dict_post["diam"] = network_stats_results_post[6]
+    if calc_expensive:
+        network_stats_dict["avg_cc"] = network_stats_results[6]
+        network_stats_dict_post["post_avg_cc"] = network_stats_results_post[6]
+        network_stats_dict["diam"] = network_stats_results[7]
+        network_stats_dict_post["diam"] = network_stats_results_post[7]
 
     network_stats_dict.update(network_stats_dict_post)
 

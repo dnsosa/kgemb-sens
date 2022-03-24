@@ -7,7 +7,7 @@ import pandas as pd
 from pykeen.pipeline import pipeline
 from pykeen.models.predict import get_tail_prediction_df, get_head_prediction_df
 
-from kgemb_sens.analyze.metrics import calc_edge_input_statistics, calc_output_statistics
+from kgemb_sens.analyze.metrics import calc_edge_input_statistics, calc_network_input_statistics, calc_output_statistics
 from kgemb_sens.transform.graph_utilities import undirect_multidigraph
 
 
@@ -42,6 +42,8 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge,
     u, r, v = test_triple['source'][0], test_triple['edge'][0], test_triple['target'][0]
 
     edge_min_node_degree, edge_rel_count, e_deg = calc_edge_input_statistics(G, test_edge, degree_dict, G_undir=G_undir)
+    net_stats = calc_network_input_statistics(G, calc_expensive=False, G_undir=G_undir)
+    n_ent_network, n_rel_network, n_triples, n_conn_comps, med_rel_count, min_rel_count = net_stats
 
     head_prediction_df = get_head_prediction_df(result.model, str(r), str(v), triples_factory=result.training)
     tail_prediction_df = get_tail_prediction_df(result.model, str(u), str(r), triples_factory=result.training)
@@ -77,6 +79,12 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge,
                     'Tail Deg Rank Corr': tail_deg_rank_corr,
                     'Edge Min Node Degree': edge_min_node_degree,
                     'Edge Rel Count': edge_rel_count,
-                    'Edge Degree': e_deg}
+                    'Edge Degree': e_deg,
+                    'N Entities': n_ent_network,
+                    'N Relations': n_rel_network,
+                    'N Triples': n_triples,
+                    'N Connected Components': n_conn_comps,
+                    'Median Relation Count': med_rel_count,
+                    'Min Relation Count:': min_rel_count}
 
     return results_dict, run_id, head_prediction_df, tail_prediction_df

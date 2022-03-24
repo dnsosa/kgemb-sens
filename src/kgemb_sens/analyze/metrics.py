@@ -31,13 +31,13 @@ def calc_edge_input_statistics(G, e, degree_dict, G_undir=None):
 
     # Edge statistics
     edge_min_node_degree = min(degree_dict[u], degree_dict[v])
-    edge_rel_count = G_rel_counter[edge_rel]- 1
+    edge_rel_count = G_rel_counter[edge_rel] - 1
     e_deg = edge_degree(G_undir, e, degree_dict)
 
     return edge_min_node_degree, edge_rel_count, e_deg
 
 
-def calc_network_input_statistics(G, calc_diam=False, G_undir=None):
+def calc_network_input_statistics(G, calc_expensive=False, G_undir=None):
     if G_undir is None:
         G_undir = undirect_multidigraph(G)
     G_rel_set = [rel for _, _, rel in G.edges(data="edge")]
@@ -45,23 +45,28 @@ def calc_network_input_statistics(G, calc_diam=False, G_undir=None):
     G_rel_counter = Counter(G_rel_set)
 
     # Network statistics
-    n_ent_network = len(G.nodes())
+    # n_ent_network = len(G.nodes())  # This fails because of singlet nodes.
+    # Count nodes based on edges [triples]. Singlets aren't relevant to embedding pipeline.
+    n_ent_network = len(set(np.concatenate([(u, v) for u, v, _ in G.edges(data='edge')])))
     n_rel_network = len(set(G_rel_set))
+    n_triples = len(G.edges(data='edge'))
     n_conn_comps = nx.number_connected_components(G_undir)
-    avg_cc = nx.average_clustering(nx.Graph(G_undir))  # to flatten
     # n_triangles = sum(list(nx.triangles(G).values())) / 3
     med_rel_count = np.median(list(G_rel_counter.values()))
     min_rel_count = np.min(list(G_rel_counter.values()))
 
     # return n_ent_network, n_rel_network, n_conn_comps, diam, avg_cc, n_triangles, med_rel_count, min_rel_count
-    if calc_diam:
+    if calc_expensive:
         if n_conn_comps > 1:
             diam = float("inf")
         else:
             diam = nx.algorithms.distance_measures.diameter(G_undir)
-        return n_ent_network, n_rel_network, n_conn_comps, avg_cc, med_rel_count, min_rel_count, diam
+
+        avg_cc = nx.average_clustering(nx.Graph(G_undir))  # to flatten
+        return n_ent_network, n_rel_network, n_triples, n_conn_comps, med_rel_count, min_rel_count, avg_cc, diam
+
     else:
-        return n_ent_network, n_rel_network, n_conn_comps, avg_cc, med_rel_count, min_rel_count
+        return n_ent_network, n_rel_network, n_triples, n_conn_comps, med_rel_count, min_rel_count
 
 
 def calc_powerlaw_statistics(degree_dict):
