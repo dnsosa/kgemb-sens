@@ -31,8 +31,7 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge,
             use_tqdm_batch=False,
         ),
         # Runtime configuration
-        random_seed=1235,
-        device='cpu',
+        random_seed=1235
     )
 
     run_id = f"{train_conditions_id}_model{params['model_name']}"
