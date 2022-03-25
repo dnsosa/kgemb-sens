@@ -158,7 +158,9 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, dengue_filter, den
                           "n_triples": network_stats_results[2],
                           "n_conn_comps": network_stats_results[3],
                           "med_rel_count": network_stats_results[4],
-                          "min_rel_count": network_stats_results[5]}
+                          "min_rel_count": network_stats_results[5],
+                          "RE": network_stats_results[6],
+                          "EE": network_stats_results[7]}
 
     # Network post modification
     # network_stats_results_post = calc_network_input_statistics(G_out, calc_expensive, G_undir=G_undir)
@@ -170,10 +172,10 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, dengue_filter, den
     #                            "post_min_rel_count": network_stats_results_post[5]}
 
     if calc_expensive:
-        network_stats_dict["avg_cc"] = network_stats_results[6]
-        network_stats_dict_post["post_avg_cc"] = network_stats_results_post[6]
-        network_stats_dict["diam"] = network_stats_results[7]
-        network_stats_dict_post["diam"] = network_stats_results_post[7]
+        network_stats_dict["avg_cc"] = network_stats_results[8]
+        network_stats_dict_post["post_avg_cc"] = network_stats_results_post[8]
+        network_stats_dict["diam"] = network_stats_results[9]
+        network_stats_dict_post["diam"] = network_stats_results_post[9]
 
     network_stats_dict.update(network_stats_dict_post)
 

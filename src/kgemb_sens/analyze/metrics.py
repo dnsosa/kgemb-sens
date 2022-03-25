@@ -8,6 +8,7 @@ import networkx as nx
 
 from collections import Counter
 from scipy import stats
+from scipy.stats import entropy
 from kgemb_sens.transform.graph_utilities import edge_degree, undirect_multidigraph
 from kgemb_sens.analyze.metrics_helpers import calc_scale_free_stats
 
@@ -47,13 +48,20 @@ def calc_network_input_statistics(G, calc_expensive=False, G_undir=None):
     # Network statistics
     # n_ent_network = len(G.nodes())  # This fails because of singlet nodes.
     # Count nodes based on edges [triples]. Singlets aren't relevant to embedding pipeline.
-    n_ent_network = len(set(np.concatenate([(u, v) for u, v, _ in G.edges(data='edge')])))
+    nodes = set(np.concatenate([(u, v) for u, v, _ in G.edges(data='edge')]))
+    n_ent_network = len(nodes)
     n_rel_network = len(set(G_rel_set))
     n_triples = len(G.edges(data='edge'))
     n_conn_comps = nx.number_connected_components(G_undir)
     # n_triangles = sum(list(nx.triangles(G).values())) / 3
     med_rel_count = np.median(list(G_rel_counter.values()))
     min_rel_count = np.min(list(G_rel_counter.values()))
+
+    # Entity and relational entropy statistics
+    rel_entropy = entropy([G_rel_counter[rel] / n_triples for rel in G_rel_counter])
+    G_sub_counter = Counter([s for s, _, _ in G.edges(data='edge')])
+    G_obj_counter = Counter([o for _, o, _ in G.edges(data='edge')])
+    ent_entropy = entropy([(G_sub_counter[ent] + G_obj_counter[ent]) / n_triples for ent in nodes])
 
     # return n_ent_network, n_rel_network, n_conn_comps, diam, avg_cc, n_triangles, med_rel_count, min_rel_count
     if calc_expensive:
@@ -63,10 +71,10 @@ def calc_network_input_statistics(G, calc_expensive=False, G_undir=None):
             diam = nx.algorithms.distance_measures.diameter(G_undir)
 
         avg_cc = nx.average_clustering(nx.Graph(G_undir))  # to flatten
-        return n_ent_network, n_rel_network, n_triples, n_conn_comps, med_rel_count, min_rel_count, avg_cc, diam
+        return n_ent_network, n_rel_network, n_triples, n_conn_comps, med_rel_count, min_rel_count, rel_entropy, ent_entropy, avg_cc, diam
 
     else:
-        return n_ent_network, n_rel_network, n_triples, n_conn_comps, med_rel_count, min_rel_count
+        return n_ent_network, n_rel_network, n_triples, n_conn_comps, med_rel_count, min_rel_count, rel_entropy, ent_entropy
 
 
 def calc_powerlaw_statistics(degree_dict):

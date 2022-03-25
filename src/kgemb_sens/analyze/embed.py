@@ -43,7 +43,7 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge,
 
     edge_min_node_degree, edge_rel_count, e_deg = calc_edge_input_statistics(G, test_edge, degree_dict, G_undir=G_undir)
     net_stats = calc_network_input_statistics(G, calc_expensive=False, G_undir=G_undir)
-    n_ent_network, n_rel_network, n_triples, n_conn_comps, med_rel_count, min_rel_count = net_stats
+    n_ent_network, n_rel_network, n_triples, n_conn_comps, med_rel_count, min_rel_count, rel_entropy, ent_entropy = net_stats
 
     head_prediction_df = get_head_prediction_df(result.model, str(r), str(v), triples_factory=result.training)
     tail_prediction_df = get_tail_prediction_df(result.model, str(u), str(r), triples_factory=result.training)
@@ -85,7 +85,9 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge,
                     'N Triples': n_triples,
                     'N Connected Components': n_conn_comps,
                     'Median Relation Count': med_rel_count,
-                    'Min Relation Count:': min_rel_count}
+                    'Min Relation Count:': min_rel_count,
+                    'RE': rel_entropy,
+                    'EE': ent_entropy}
 
     print(results_dict)
 
