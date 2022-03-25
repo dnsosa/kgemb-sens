@@ -122,7 +122,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, dengue_filter, den
                                                                                            dist_mat=dist_mat,
                                                                                            degree_dict=degree_dict)
 
-        G_out_undir = undirect_multidigraph(G)
+        G_out_undir = undirect_multidigraph(G_out)
         G_out_degree_dict = dict(G_out.degree())
 
         train_subset, test_subset, sparse_subset, new_contradictions, removed_contradictions = edge_divisions

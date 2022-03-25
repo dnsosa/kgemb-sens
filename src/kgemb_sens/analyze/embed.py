@@ -87,4 +87,6 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge,
                     'Median Relation Count': med_rel_count,
                     'Min Relation Count:': min_rel_count}
 
+    print(results_dict)
+
     return results_dict, run_id, head_prediction_df, tail_prediction_df
