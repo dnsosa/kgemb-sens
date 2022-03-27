@@ -173,11 +173,11 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, dengue_filter, den
 
     if calc_expensive:
         network_stats_dict["avg_cc"] = network_stats_results[8]
-        network_stats_dict_post["post_avg_cc"] = network_stats_results_post[8]
+        # network_stats_dict_post["post_avg_cc"] = network_stats_results_post[8]
         network_stats_dict["diam"] = network_stats_results[9]
-        network_stats_dict_post["diam"] = network_stats_results_post[9]
+        # network_stats_dict_post["diam"] = network_stats_results_post[9]
 
-    network_stats_dict.update(network_stats_dict_post)
+    # network_stats_dict.update(network_stats_dict_post)
 
     network_stats_df = pd.DataFrame(network_stats_dict, index=[0])
     network_stats_df.to_csv(f"{save_dir}/network_stats.tsv", sep='\t', header=True, index=False)
