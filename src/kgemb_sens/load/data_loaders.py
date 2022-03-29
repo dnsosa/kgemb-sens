@@ -12,6 +12,7 @@ from kgemb_sens.transform.graph_utilities import undirect_multidigraph
 ##data_dir="/Users/dnsosa/.data/pykeen/datasets"
 DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
 PCNET_DIR = DATA_DIR
+COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 
 
 def load_benchmark_data_three_parts(dataset, data_dir=DATA_DIR):
@@ -138,3 +139,13 @@ def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCN
         return G_dengue
 
     return G
+
+
+def load_covid_graph(data_dir=COVIDKG_DIR):
+    covid_path = f"{data_dir}/_cache.csv"
+    covid_df = pd.read_csv(covid_path, header=None, sep="\t")
+    covid_df.columns = ["source", "edge", "target", "edge_attributes"]
+
+    G_covid = nx.from_pandas_edgelist(covid_df, "source", "target", edge_attr=True, create_using=nx.MultiDiGraph())
+
+    return G_covid
