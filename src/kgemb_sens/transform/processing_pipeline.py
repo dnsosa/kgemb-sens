@@ -16,7 +16,8 @@ from kgemb_sens.utilities import good_round
 
 def graph_processing_pipeline(G, i, params, out_dir,
                               all_valid_negations=None, edge_names=None, SEED=1, G_undir=None, antonyms=None,
-                              dist_mat=None, degree_dict=None, in_val_test_subset=None):
+                              dist_mat=None, degree_dict=None, in_val_test_subset=None, replace_edges=False,
+                              test_min_edeg=None, test_max_edeg=None):
 
     if G_undir is None:
         G_undir = undirect_multidigraph(G)
@@ -43,7 +44,8 @@ def graph_processing_pipeline(G, i, params, out_dir,
                 val_test_set_size = int(params["val_test_frac"])
 
             probabilities = list(prob_dist(None, edges, dist_mat=None, degree_dict=degree_dict, prob_type="degree",
-                                           graph=G_undir, alpha=params["vt_alpha"]))
+                                           graph=G_undir, alpha=params["vt_alpha"],
+                                           min_edeg=test_min_edeg, max_edeg=test_max_edeg))
             val_test_subset_idx = list(np.random.choice(len(edges), val_test_set_size, replace=False, p=probabilities))
 
             val_test_subset = []
@@ -105,6 +107,7 @@ def graph_processing_pipeline(G, i, params, out_dir,
                                                                                      dist_mat=dist_mat,
                                                                                      degree_dict=degree_dict,
                                                                                      antonyms=antonyms,
+                                                                                     replace_edges=replace_edges,
                                                                                      SEED=SEED)
 
             new_contradictions = sampled_rel_edges + contradictory_edges

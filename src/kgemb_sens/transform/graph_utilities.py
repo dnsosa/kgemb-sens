@@ -56,6 +56,8 @@ def prob_dist(edge,
               degree_dict=None,
               prob_type="distance",
               graph=None,
+              min_edeg=0,
+              max_edeg=float("inf"),
               alpha=0):
     if prob_type == "distance":
         if dist_mat is None:
@@ -77,11 +79,14 @@ def prob_dist(edge,
         if degree_dict is None:
             print("No degree dict provided!")
         # NOTE: Assumes that graph is the undirected version
-        u_dist = np.array([edge_degree(graph, other_edge, degree_dict) for other_edge in all_edges])
+        e_degs = np.array([edge_degree(graph, other_edge, degree_dict) for other_edge in all_edges])
         # Degree priority parameter: positive = prefer hubs, 0 = uniform, negative = deprioritize hubs
-        u_dist = u_dist ** (float(alpha))
+        u_dist = e_degs ** (float(alpha))
         # Deal with 0 distances
         u_dist[u_dist == np.inf] = 0
+        # Zero out edge degrees that are too high or low
+        u_dist[e_degs < min_edeg] = 0
+        u_dist[e_degs > max_edeg] = 0
         # Deal with 0 distance in the case of alpha = 0. Probably redundant with above
         if edge in all_edges:
             edge_idx = all_edges.index(edge)
@@ -128,5 +133,49 @@ def random_split_list(in_list, val_frac):
     random.shuffle(in_list)
     k = int(good_round(len(in_list) * val_frac))
     return in_list[:k], in_list[k:]
+
+
+def remove_E(G):
+    E_free_edges = [e for e in G.edges(data=True) if e[-1]['edge'] != "E"]
+    print(f"New network without 'E' has len: {len(E_free_edges)}")
+    return nx.MultiDiGraph(E_free_edges)
+
+
+def filter_in_etype(G, edge_types):
+    filter_in_edges = []
+    for edge in edge_types:
+        filter_in_edges += [e for e in G.edges(data=True) if e[-1]['edge'] == edge]
+
+    print(f"New network with {edge_types} filtered in has len: {len(filter_in_edges)}")
+    return nx.MultiDiGraph(filter_in_edges)
+
+
+def randomize_edges(G):
+    edge_types = set([r for _, _, r in G.edges(data='edge')])
+    new_edges = []
+    for e in G.edges(data=True):
+        edge_type = set([e[-1]['edge']])
+        alternate_edge_types = edge_types.difference(edge_type)
+        sampled_alternate = np.random.choice(list(alternate_edge_types), 1)
+        new_edge = (e[0], e[1], {'edge': sampled_alternate[0]})
+        new_edges.append(new_edge)
+
+    print(f"New network with replaced relations has len: {len(new_edges)}")
+    return nx.MultiDiGraph(new_edges)
+
+
+def make_all_one_type(G):
+    blah_edges = [(u, v, {'edge': "blah"}) for u, v, _ in G.edges(data=True)]
+    return nx.MultiDiGraph(blah_edges)
+
+
+def remove_hubs(G, hub_size=100):
+    degree_dict = dict(G.degree())
+    large_deg_nodes = [node for node in degree_dict.keys() if degree_dict[node] > hub_size]
+    G2 = G.copy()
+    G2.remove_nodes_from(large_deg_nodes)
+    print(f"New network without hubs of degree {hub_size} or greater has len: {G2.number_of_edges()}")
+    return nx.MultiDiGraph(G2.edges(data=True))
+
 
 

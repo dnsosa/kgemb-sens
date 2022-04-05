@@ -99,7 +99,7 @@ def generate_converse_edges_from(edge_list, antonym_dict=None):
     return out_list
 
 
-def fill_with_contradictions(G, edge_names, val_test_subset, params, G_undir=None, dist_mat=None, degree_dict=None, antonyms=None, SEED=None):
+def fill_with_contradictions(G, edge_names, val_test_subset, params, G_undir=None, dist_mat=None, degree_dict=None, antonyms=None, replace_edges=False, SEED=None):
     np.random.seed(SEED)
     antonym_dict = None
     if antonyms is None:
@@ -159,6 +159,8 @@ def fill_with_contradictions(G, edge_names, val_test_subset, params, G_undir=Non
 
     # Need to update the keys of the newly added edges
     contra_keys = G_contra.add_edges_from(all_contradictory_edges)
+    if replace_edges:
+        G_contra.remove_edges_from(all_sampled_rel_edges)
     all_contradictory_edges = [(u, v, contra_keys[i], r) for i, (u, v, _, r) in enumerate(all_contradictory_edges)]
 
     return G_contra, all_sampled_rel_edges, all_contradictory_edges

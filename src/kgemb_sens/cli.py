@@ -5,6 +5,7 @@
 import os
 
 import click
+import itertools
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -15,7 +16,7 @@ from kgemb_sens.analyze.embed import run_embed_pipeline
 from kgemb_sens.analyze.metrics import calc_network_input_statistics
 from kgemb_sens.load.data_loaders import load_benchmark_data_three_parts, load_drkg_data, load_covid_graph
 from kgemb_sens.transform.contradiction_utilities import find_all_valid_negations
-from kgemb_sens.transform.graph_utilities import undirect_multidigraph
+from kgemb_sens.transform.graph_utilities import undirect_multidigraph, remove_E, filter_in_etype, randomize_edges, make_all_one_type
 from kgemb_sens.transform.processing_pipeline import graph_processing_pipeline
 
 DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
@@ -31,9 +32,16 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--covidkg_dir', 'covidkg_dir', default=COVIDKG_DIR)
 @click.option('--dengue_filter/--no-dengue_filter', 'dengue_filter', default=False)
 @click.option('--dengue_expand_depth', 'dengue_expand_depth', default=1)
+@click.option('--remove_E/--no-remove_E', 'remove_E_filter', default=False)
+@click.option('--filter_in_antonyms/--no-filter_in_antonyms', 'filter_in_antonyms', default=False)
+@click.option('--randomize_relations/--no-randomize_relations', 'randomize_relations', default=False)
+@click.option('--single_relation/--no-single_relation', 'single_relation', default=False)
+@click.option('--hub_remove_thresh', 'hub_remove_thresh', default=None)
 @click.option('--val_test_frac', 'val_test_frac', default=1.0)
 @click.option('--val_frac', 'val_frac', default=0.0)
 @click.option('--vt_alpha', 'vt_alpha', default=0.0)
+@click.option('--test_min_edeg', 'test_min_edeg', default=0.0)
+@click.option('--test_max_edeg', 'test_max_edeg', default=float("inf"))
 @click.option('--sparsified_frac', 'sparsified_frac', default=0.0)
 @click.option('--alpha', 'alpha', default=0.0)
 @click.option('--n_resample', 'n_resample', default=100)
@@ -42,13 +50,15 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--neg_completion_frac', 'neg_completion_frac', default=0.0)
 @click.option('--contradiction_frac', 'contradiction_frac', default=0.0)
 @click.option('--contra_remove_frac', 'contra_remove_frac', default=0.0)
+@click.option('--replace_edges/--no-replace_edges', 'replace_edges', default=False)
 @click.option('--MODE', 'MODE', default='contrasparsify')
 @click.option('--model_name', 'model_name', default='transe')
 @click.option('--n_epochs', 'n_epochs', default=200)
 def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengue_filter, dengue_expand_depth,
-         val_test_frac, val_frac, vt_alpha, sparsified_frac, alpha, n_resample, prob_type, flatten_kg,
-         neg_completion_frac, contradiction_frac, contra_remove_frac,
-         MODE, model_name, n_epochs):
+         remove_E_filter, filter_in_antonyms, randomize_relations, single_relation, hub_remove_thresh,
+         val_test_frac, val_frac, vt_alpha, test_min_edeg, test_max_edeg, sparsified_frac, alpha, n_resample, prob_type,
+         flatten_kg, neg_completion_frac, contradiction_frac, contra_remove_frac, replace_edges, MODE, model_name,
+         n_epochs):
     """Run main function."""
 
     SEED = 1005
@@ -59,9 +69,16 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
 
     params = {"dataset": dataset,
               "pcnet_filter": pcnet_filter,
+              "remove_E_filter": remove_E_filter,
+              "filter_in_antonyms": filter_in_antonyms,
+              "randomize_relations": randomize_relations,
+              "single_relation": single_relation,
+              "hub_remove_thresh": hub_remove_thresh,
               "val_test_frac": val_test_frac,
               "val_frac": val_frac,
               "vt_alpha": vt_alpha,
+              "test_min_edeg": test_min_edeg,
+              "test_max_edeg": test_max_edeg,
               "sparsified_frac": sparsified_frac,
               "alpha": alpha,
               "n_resample": n_resample,
@@ -70,6 +87,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
               "neg_completion_frac": neg_completion_frac, #TODO: NEED better sampling strategy I think. Randomized algorithm?
               "contradiction_frac": contradiction_frac,
               "contra_remove_frac": contra_remove_frac,
+              "replace_edges": replace_edges,
               "MODE": MODE,  # "sparsification", "contrasparsify"
               "model_name": model_name,
               "n_epochs": n_epochs}
@@ -89,6 +107,18 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
     elif dataset == "covid":
         G = load_covid_graph(covidkg_dir)
         antonyms = [('increases', 'decreases'), ('positiveCorrelation', 'negativeCorrelation')]
+
+    # Optional pre-processing as controls/debugging
+    if hub_remove_thresh is not None:
+        G = remove_hubs(G, hub_size=hub_remove_thresh)
+    if remove_E_filter:
+        G = remove_E(G)
+    if filter_in_antonyms:
+        G = filter_in_etype(G, list(itertools.chain(*antonyms)))
+    if randomize_relations:
+        G = randomize_edges(G)
+    if single_relation:
+        G = make_all_one_type(G)
 
     G_undir = undirect_multidigraph(G)
 
@@ -125,7 +155,10 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
                                                                                            G_undir=G_undir,
                                                                                            antonyms=antonyms,
                                                                                            dist_mat=dist_mat,
-                                                                                           degree_dict=degree_dict)
+                                                                                           degree_dict=degree_dict,
+                                                                                           replace_edges=replace_edges,
+                                                                                           test_min_edeg=test_min_edeg,
+                                                                                           test_max_edeg=test_max_edeg)
 
         G_out_undir = undirect_multidigraph(G_out)
         G_out_degree_dict = dict(G_out.degree())
