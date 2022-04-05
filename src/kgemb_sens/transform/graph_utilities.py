@@ -171,7 +171,7 @@ def make_all_one_type(G):
 
 def remove_hubs(G, hub_size=100):
     degree_dict = dict(G.degree())
-    large_deg_nodes = [node for node in degree_dict.keys() if degree_dict[node] > hub_size]
+    large_deg_nodes = [node for node in degree_dict.keys() if degree_dict[node] > float(hub_size)]
     G2 = G.copy()
     G2.remove_nodes_from(large_deg_nodes)
     print(f"New network without hubs of degree {hub_size} or greater has len: {G2.number_of_edges()}")
