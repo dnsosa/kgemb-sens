@@ -81,6 +81,8 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
               "vt_alpha": vt_alpha,
               "test_min_edeg": test_min_edeg,
               "test_max_edeg": test_max_edeg,
+              "test_min_mnd": test_min_mnd,
+              "test_max_mnd": test_max_mnd,
               "sparsified_frac": sparsified_frac,
               "alpha": alpha,
               "n_resample": n_resample,
