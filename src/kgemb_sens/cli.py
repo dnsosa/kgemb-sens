@@ -58,9 +58,9 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--n_epochs', 'n_epochs', default=200)
 def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengue_filter, dengue_expand_depth,
          remove_E_filter, filter_in_antonyms, randomize_relations, single_relation, hub_remove_thresh,
-         val_test_frac, val_frac, vt_alpha, test_min_edeg, test_max_edeg, sparsified_frac, alpha, n_resample, prob_type,
-         flatten_kg, neg_completion_frac, contradiction_frac, contra_remove_frac, replace_edges, MODE, model_name,
-         n_epochs):
+         val_test_frac, val_frac, vt_alpha, test_min_edeg, test_max_edeg, test_min_mnd, test_max_mnd,
+         sparsified_frac, alpha, n_resample, prob_type, flatten_kg, neg_completion_frac,
+         contradiction_frac, contra_remove_frac, replace_edges, MODE, model_name, n_epochs):
     """Run main function."""
 
     SEED = 1005
