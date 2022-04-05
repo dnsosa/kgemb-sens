@@ -50,6 +50,11 @@ def edge_degree(G_undir, e, degree_dict):
     return (degree_dict[e[0]] - 1) + (degree_dict[e[1]] - G_undir.number_of_edges(e[0], e[1]))
 
 
+def min_node_degree(e, degree_dict):
+    u, v = e[0], e[1]
+    return min(degree_dict[u], degree_dict[v])
+
+
 def prob_dist(edge,
               all_edges,
               dist_mat=None,
@@ -58,6 +63,8 @@ def prob_dist(edge,
               graph=None,
               min_edeg=0,
               max_edeg=float("inf"),
+              min_mnd=0,
+              max_mnd=float("inf"),
               alpha=0):
     if prob_type == "distance":
         if dist_mat is None:
@@ -80,6 +87,7 @@ def prob_dist(edge,
             print("No degree dict provided!")
         # NOTE: Assumes that graph is the undirected version
         e_degs = np.array([edge_degree(graph, other_edge, degree_dict) for other_edge in all_edges])
+        e_mnds = np.array([min_node_degree(edge, degree_dict) for edge in all_edges])
         # Degree priority parameter: positive = prefer hubs, 0 = uniform, negative = deprioritize hubs
         u_dist = e_degs ** (float(alpha))
         # Deal with 0 distances
@@ -87,6 +95,8 @@ def prob_dist(edge,
         # Zero out edge degrees that are too high or low
         u_dist[e_degs < min_edeg] = 0
         u_dist[e_degs > max_edeg] = 0
+        u_dist[e_mnds < min_mnd] = 0
+        u_dist[e_mnds > max_mnd] = 0
         # Deal with 0 distance in the case of alpha = 0. Probably redundant with above
         if edge in all_edges:
             edge_idx = all_edges.index(edge)

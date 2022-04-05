@@ -17,7 +17,7 @@ from kgemb_sens.utilities import good_round
 def graph_processing_pipeline(G, i, params, out_dir,
                               all_valid_negations=None, edge_names=None, SEED=1, G_undir=None, antonyms=None,
                               dist_mat=None, degree_dict=None, in_val_test_subset=None, replace_edges=False,
-                              test_min_edeg=0, test_max_edeg=float("inf")):
+                              test_min_edeg=0, test_max_edeg=float("inf"), test_min_mnd=0, test_max_mnd=float("inf")):
 
     if G_undir is None:
         G_undir = undirect_multidigraph(G)
@@ -45,7 +45,8 @@ def graph_processing_pipeline(G, i, params, out_dir,
 
             probabilities = list(prob_dist(None, edges, dist_mat=None, degree_dict=degree_dict, prob_type="degree",
                                            graph=G_undir, alpha=params["vt_alpha"],
-                                           min_edeg=test_min_edeg, max_edeg=test_max_edeg))
+                                           min_edeg=test_min_edeg, max_edeg=test_max_edeg,
+                                           min_mnd=test_min_mnd, max_mnd=test_max_mnd))
             val_test_subset_idx = list(np.random.choice(len(edges), val_test_set_size, replace=False, p=probabilities))
 
             val_test_subset = []

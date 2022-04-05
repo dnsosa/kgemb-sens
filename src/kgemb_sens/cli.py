@@ -42,6 +42,8 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--vt_alpha', 'vt_alpha', default=0.0)
 @click.option('--test_min_edeg', 'test_min_edeg', default=0.0)
 @click.option('--test_max_edeg', 'test_max_edeg', default=float("inf"))
+@click.option('--test_min_mnd', 'test_min_mnd', default=0.0)
+@click.option('--test_max_mnd', 'test_max_mnd', default=float("inf"))
 @click.option('--sparsified_frac', 'sparsified_frac', default=0.0)
 @click.option('--alpha', 'alpha', default=0.0)
 @click.option('--n_resample', 'n_resample', default=100)
@@ -158,7 +160,9 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
                                                                                            degree_dict=degree_dict,
                                                                                            replace_edges=replace_edges,
                                                                                            test_min_edeg=test_min_edeg,
-                                                                                           test_max_edeg=test_max_edeg)
+                                                                                           test_max_edeg=test_max_edeg,
+                                                                                           test_min_mnd=test_min_mnd,
+                                                                                           test_max_mnd=test_max_mnd)
 
         G_out_undir = undirect_multidigraph(G_out)
         G_out_degree_dict = dict(G_out.degree())
