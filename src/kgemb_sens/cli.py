@@ -52,7 +52,7 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--neg_completion_frac', 'neg_completion_frac', default=0.0)
 @click.option('--contradiction_frac', 'contradiction_frac', default=0.0)
 @click.option('--contra_remove_frac', 'contra_remove_frac', default=0.0)
-@click.option('--replace_edges/--no-replace_edges', 'replace_edges', default=False)
+@click.option('--replace_edges/--no-replace_edges', 'replace_edges', default=True)
 @click.option('--MODE', 'MODE', default='contrasparsify')
 @click.option('--model_name', 'model_name', default='transe')
 @click.option('--n_epochs', 'n_epochs', default=200)
@@ -95,6 +95,9 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
               "MODE": MODE,  # "sparsification", "contrasparsify"
               "model_name": model_name,
               "n_epochs": n_epochs}
+
+    print("Running on these params:")
+    print(params)
 
     # LOAD DATA
     antonyms = None
