@@ -17,7 +17,8 @@ from kgemb_sens.utilities import good_round
 def graph_processing_pipeline(G, i, params, out_dir,
                               all_valid_negations=None, edge_names=None, SEED=1, G_undir=None, antonyms=None,
                               dist_mat=None, degree_dict=None, in_val_test_subset=None, replace_edges=False,
-                              test_min_edeg=0, test_max_edeg=float("inf"), test_min_mnd=0, test_max_mnd=float("inf")):
+                              test_min_edeg=0, test_max_edeg=float("inf"), test_min_mnd=0, test_max_mnd=float("inf"),
+                              rel_whitelist=None):
 
     if G_undir is None:
         G_undir = undirect_multidigraph(G)
@@ -39,14 +40,23 @@ def graph_processing_pipeline(G, i, params, out_dir,
 
         if in_val_test_subset is None:
             if params["val_test_frac"] < 1:
-                val_test_set_size = good_round(params["val_test_frac"] * G.number_of_edges())
+                # TODO: Change to number of edges of specific type
+                if rel_whitelist is None:
+                    val_test_set_size = good_round(params["val_test_frac"] * G.number_of_edges())
+                else:
+                    whitelist_count = 0
+                    G_rel_counter = Counter([r for _, _, r in G.edges(data='edge')])
+                    for rel in rel_whitelist:
+                        whitelist_count += G_rel_counter[rel]
+                    val_test_set_size = good_round(params["val_test_frac"] * whitelist_count)
             else:
                 val_test_set_size = int(params["val_test_frac"])
 
             probabilities = list(prob_dist(None, edges, dist_mat=None, degree_dict=degree_dict, prob_type="degree",
                                            graph=G_undir, alpha=params["vt_alpha"],
                                            min_edeg=test_min_edeg, max_edeg=test_max_edeg,
-                                           min_mnd=test_min_mnd, max_mnd=test_max_mnd))
+                                           min_mnd=test_min_mnd, max_mnd=test_max_mnd,
+                                           rel_whitelist=rel_whitelist))
             val_test_subset_idx = list(np.random.choice(len(edges), val_test_set_size, replace=False, p=probabilities))
 
             val_test_subset = []

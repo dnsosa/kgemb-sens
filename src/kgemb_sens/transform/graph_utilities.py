@@ -55,55 +55,58 @@ def min_node_degree(e, degree_dict):
     return min(degree_dict[u], degree_dict[v])
 
 
-def prob_dist(edge,
+def prob_dist(edge,  # This edge is the input edge we want to calculate a distance away from, for example
               all_edges,
               dist_mat=None,
               degree_dict=None,
               prob_type="distance",
               graph=None,
+              alpha=0,
               min_edeg=0,
               max_edeg=float("inf"),
               min_mnd=0,
               max_mnd=float("inf"),
-              alpha=0):
+              rel_whitelist=None):
+    # NOTE: Assumes that graph is the undirected version
+    e_degs = np.array([edge_degree(graph, other_edge, degree_dict) for other_edge in all_edges])
+    e_mnds = np.array([min_node_degree(other_edge, degree_dict) for other_edge in all_edges])
+
     if prob_type == "distance":
         if dist_mat is None:
             print("No distance matrix provided!")
         u_dist = np.array([edge_dist(edge, other_edge, dist_mat) for other_edge in all_edges])
-        inf_mask = (u_dist != np.inf)
-        # Proximity parameter: positive = prefer far, 0 = uniform, negative = prefer near
-        u_dist = u_dist ** (float(alpha))
         # Deal with 0 distances
         u_dist[u_dist == np.inf] = 0
-        # Deal with 0 distance in the case of alpha = 0. Probably redundant with above
-        if edge in all_edges:  # might not be the case in the contradictification pipeline
-            edge_idx = all_edges.index(edge)
-            u_dist[edge_idx] = 0
-        # Deal with making the distances to the different components (infinite) equal to 0
-        u_dist *= inf_mask
+        # Proximity parameter: positive = prefer far, 0 = uniform, negative = prefer near
+        u_dist = u_dist ** (float(alpha))
 
     elif prob_type == "degree":
         if degree_dict is None:
             print("No degree dict provided!")
-        # NOTE: Assumes that graph is the undirected version
-        e_degs = np.array([edge_degree(graph, other_edge, degree_dict) for other_edge in all_edges])
-        e_mnds = np.array([min_node_degree(edge, degree_dict) for edge in all_edges])
         # Degree priority parameter: positive = prefer hubs, 0 = uniform, negative = deprioritize hubs
         u_dist = e_degs ** (float(alpha))
         # Deal with 0 distances
         u_dist[u_dist == np.inf] = 0
-        # Zero out edge degrees that are too high or low
-        u_dist[e_degs < min_edeg] = 0
-        u_dist[e_degs > max_edeg] = 0
-        u_dist[e_mnds < min_mnd] = 0
-        u_dist[e_mnds > max_mnd] = 0
-        # Deal with 0 distance in the case of alpha = 0. Probably redundant with above
-        if edge in all_edges:
-            edge_idx = all_edges.index(edge)
-            u_dist[edge_idx] = 0
+
+    # Zero out edge degrees that are too high or low
+    u_dist[e_degs < min_edeg] = 0
+    u_dist[e_degs > max_edeg] = 0
+    u_dist[e_mnds < min_mnd] = 0
+    u_dist[e_mnds > max_mnd] = 0
+
+    # Zero out edges that aren't of the whitelist type
+    if rel_whitelist is not None:
+        in_whitelist_mask = [(other_edge[-1]['edge'] in rel_whitelist) for other_edge in all_edges]
+        u_dist *= in_whitelist_mask
+
+    # Avoid hitting the input edge
+    if edge in all_edges:  # might not be the case in the contradictification pipeline
+        edge_idx = all_edges.index(edge)
+        u_dist[edge_idx] = 0
 
     # Replace NaNs with 0s
     u_dist = np.nan_to_num(u_dist)
+
     # Normalize
     p_dist = u_dist / sum(u_dist)
 

@@ -56,11 +56,12 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--MODE', 'MODE', default='contrasparsify')
 @click.option('--model_name', 'model_name', default='transe')
 @click.option('--n_epochs', 'n_epochs', default=200)
+@click.option('--repurposing_eval/--no-repurposing_eval', 'repurposing_evaluation', default=False)
 def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengue_filter, dengue_expand_depth,
          remove_E_filter, filter_in_antonyms, randomize_relations, single_relation, hub_remove_thresh,
          val_test_frac, val_frac, vt_alpha, test_min_edeg, test_max_edeg, test_min_mnd, test_max_mnd,
          sparsified_frac, alpha, n_resample, prob_type, flatten_kg, neg_completion_frac,
-         contradiction_frac, contra_remove_frac, replace_edges, MODE, model_name, n_epochs):
+         contradiction_frac, contra_remove_frac, replace_edges, MODE, model_name, n_epochs, repurposing_evaluation):
     """Run main function."""
 
     SEED = 1005
@@ -94,7 +95,8 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
               "replace_edges": replace_edges,
               "MODE": MODE,  # "sparsification", "contrasparsify"
               "model_name": model_name,
-              "n_epochs": n_epochs}
+              "n_epochs": n_epochs,
+              "repurposing_evaluation": repurposing_evaluation}
 
     print("Running on these params:")
     print(params)
@@ -153,6 +155,14 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
     else:
         degree_dict = dict(G.degree())
 
+    # Calculate the relevant whitelist if any
+    rel_whitelist = None
+    if repurposing_evaluation:
+        if "gnbr" in dataset:
+            rel_whitelist = {"T", "Pa"}
+        elif dataset == "hetionet":
+            rel_whitelist = {"CtD", "CpD"}
+
     print("\n\nBeginning graph processing pipeline...")
     for i in range(n_resample):
         print(f"\nSample {i}")
@@ -167,18 +177,21 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
                                                                                            test_min_edeg=test_min_edeg,
                                                                                            test_max_edeg=test_max_edeg,
                                                                                            test_min_mnd=test_min_mnd,
-                                                                                           test_max_mnd=test_max_mnd)
+                                                                                           test_max_mnd=test_max_mnd,
+                                                                                           rel_whitelist=rel_whitelist)
 
         G_out_undir = undirect_multidigraph(G_out)
         G_out_degree_dict = dict(G_out.degree())
 
         train_subset, test_subset, sparse_subset, new_contradictions, removed_contradictions = edge_divisions
         print("Now embedding results...")
+
         results_dict, run_id, head_pred_df, tail_pred_df = run_embed_pipeline(data_paths, i, params,
                                                                               train_conditions_id,
                                                                               G_out, test_subset[0],
                                                                               G_out_degree_dict,
-                                                                              G_undir=G_out_undir)
+                                                                              G_undir=G_out_undir,
+                                                                              rel_whitelist=rel_whitelist)
 
         # TODO: output embeddings from training
         # TODO: Doesn't make sense to keep reassigning this every loop. Create the run ID sooner

@@ -11,7 +11,8 @@ from kgemb_sens.analyze.metrics import calc_edge_input_statistics, calc_network_
 from kgemb_sens.transform.graph_utilities import undirect_multidigraph
 
 
-def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge, degree_dict=None, G_undir=None):
+def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge,
+                       degree_dict=None, G_undir=None, rel_whitelist=None):
     if G_undir is None:
         G_undir = undirect_multidigraph(G)
 
@@ -24,6 +25,7 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge,
         training=new_train_path,
         ##validation=new_val_path,
         testing=new_test_path,
+        evaluation_relation_whitelist=rel_whitelist,
         model=params["model_name"],
         # Training configuration
         training_kwargs=dict(
@@ -75,6 +77,7 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge,
                     'Num_resamples': params["n_resample"],
                     # 'Val_test_subset_idx': str(val_test_subset_idx),
                     'Num_epochs': params["n_epochs"],
+                    'Repurposing evaluation': params["repurposing_evaluation"],
                     'Run': i,
                     'Run_ID': run_id,
                     'AMRI': result.metric_results.get_metric('adjusted_mean_rank_index'),
@@ -94,7 +97,7 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge,
                     'N Triples': n_triples,
                     'N Connected Components': n_conn_comps,
                     'Median Relation Count': med_rel_count,
-                    'Min Relation Count:': min_rel_count,
+                    'Min Relation Count': min_rel_count,
                     'RE': rel_entropy,
                     'EE': ent_entropy}
 
