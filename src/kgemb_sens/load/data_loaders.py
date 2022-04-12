@@ -65,6 +65,8 @@ def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCN
         dataset_name = "DRUGBANK"
     elif "string" in dataset:
         dataset_name = "STRING"
+    elif "hetionet" in dataset:
+        dataset_name = "Hetionet"
     else:
         print("Not a valid dataset name!!")
         return None
@@ -76,14 +78,31 @@ def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCN
     elif "drg" in dataset:
         query_entity_types = "Compound:Gene"
     else:
-        print("Not a valid dataset name (unrecognized entity types)!!")
-        return None
+        query_entity_types = None
+        print(f"No entity query types specified, just returning all of {dataset}")
 
-    filtered_df = drkg_df[(drkg_df.kg == dataset_name) & (drkg_df.entity_types == query_entity_types)].reset_index()
+    # Filter the dataset from DRKG
+    if query_entity_types is None:
+        filtered_df = drkg_df[drkg_df.kg == dataset_name].reset_index()
+    else:
+        filtered_df = drkg_df[(drkg_df.kg == dataset_name) & (drkg_df.entity_types == query_entity_types)].reset_index()
+
+    # Filter only the relevant relation types between Dr, Dz, and G
+    if dataset == "gnbr":
+        filtered_df = filtered_df[(filtered_df.edge != "in_tax")]
+        print(f"Filtering out 'in_tax' edges for GNBR KG.")
+    elif dataset == "hetionet":
+        hetionet_drdzg_edges = {"DaG", "DdG", "DuG", "GcG", "GiG", "Gr>G", "CtD", "CpD", "CuG", "CdG", "CbG"}
+        filtered_df = filtered_df[filtered_df.edge.isin(hetionet_drdzg_edges)]
+        print(f"Filtering in only {hetionet_drdzg_edges} edge types in Hetionet.")
+
+    # Summarize what happened
     print(f"Size of {dataset}: {len(filtered_df)} edges.")
     print(f"Found the following relationship types when filtering to {dataset}: {set(filtered_df.edge)}.")
     filtered_df = filtered_df[['source', 'edge', 'target']]
 
+    # Extra processing steps for working with PPIs, for instance for filtering based on PCNet.
+    # TODO: Apply PCNet filtration to the gene-gene portion ONLY even if using the whole KG?
     if query_entity_types == "Gene:Gene":
         filtered_df['source_entrez'] = filtered_df.source.str.split('::', expand=True)[1]
         filtered_df['target_entrez'] = filtered_df.target.str.split('::', expand=True)[1]
