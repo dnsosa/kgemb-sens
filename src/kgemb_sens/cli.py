@@ -14,6 +14,7 @@ from collections import Counter
 
 from kgemb_sens.analyze.embed import run_embed_pipeline
 from kgemb_sens.analyze.metrics import calc_network_input_statistics
+from kgemb_sens.analyze.psl import run_psl_pipeline
 from kgemb_sens.load.data_loaders import load_benchmark_data_three_parts, load_drkg_data, load_covid_graph
 from kgemb_sens.transform.contradiction_utilities import find_all_valid_negations
 from kgemb_sens.transform.graph_utilities import undirect_multidigraph, remove_E, filter_in_etype, randomize_edges, make_all_one_type, remove_hubs
@@ -47,6 +48,7 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--sparsified_frac', 'sparsified_frac', default=0.0)
 @click.option('--alpha', 'alpha', default=0.0)
 @click.option('--n_resample', 'n_resample', default=100)
+@click.option('--n_negatives' 'n_negatives', default=1)
 @click.option('--prob_type', 'prob_type', default='degree')
 @click.option('--flatten_kg', 'flatten_kg', default=False)
 @click.option('--neg_completion_frac', 'neg_completion_frac', default=0.0)
@@ -54,14 +56,17 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--contra_remove_frac', 'contra_remove_frac', default=0.0)
 @click.option('--replace_edges/--no-replace_edges', 'replace_edges', default=True)
 @click.option('--MODE', 'MODE', default='contrasparsify')
+@click.option('--psl/--no-psl', 'psl', default=False)
+@click.option('--full_prod/--no-full_prod', 'full_product', default=False)
 @click.option('--model_name', 'model_name', default='transe')
 @click.option('--n_epochs', 'n_epochs', default=200)
 @click.option('--repurposing_eval/--no-repurposing_eval', 'repurposing_evaluation', default=False)
 def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengue_filter, dengue_expand_depth,
          remove_E_filter, filter_in_antonyms, randomize_relations, single_relation, hub_remove_thresh,
          val_test_frac, val_frac, vt_alpha, test_min_edeg, test_max_edeg, test_min_mnd, test_max_mnd,
-         sparsified_frac, alpha, n_resample, prob_type, flatten_kg, neg_completion_frac,
-         contradiction_frac, contra_remove_frac, replace_edges, MODE, model_name, n_epochs, repurposing_evaluation):
+         sparsified_frac, alpha, n_resample, n_negatives, prob_type, flatten_kg, neg_completion_frac,
+         contradiction_frac, contra_remove_frac, replace_edges, MODE, psl, full_product,
+         model_name, n_epochs, repurposing_evaluation):
     """Run main function."""
 
     SEED = 1005
@@ -87,6 +92,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
               "sparsified_frac": sparsified_frac,
               "alpha": alpha,
               "n_resample": n_resample,
+              "n_negatives": n_negatives,
               "prob_type": prob_type,  # distance, degree
               "flatten_kg": flatten_kg,
               "neg_completion_frac": neg_completion_frac, #TODO: NEED better sampling strategy I think. Randomized algorithm?
@@ -94,6 +100,8 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
               "contra_remove_frac": contra_remove_frac,
               "replace_edges": replace_edges,
               "MODE": MODE,  # "sparsification", "contrasparsify"
+              "psl": psl,
+              "full_product": full_product,
               "model_name": model_name,
               "n_epochs": n_epochs,
               "repurposing_evaluation": repurposing_evaluation}
@@ -186,12 +194,22 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
         train_subset, test_subset, sparse_subset, new_contradictions, removed_contradictions = edge_divisions
         print("Now embedding results...")
 
-        results_dict, run_id, head_pred_df, tail_pred_df = run_embed_pipeline(data_paths, i, params,
-                                                                              train_conditions_id,
-                                                                              G_out, test_subset[0],
-                                                                              G_out_degree_dict,
-                                                                              G_undir=G_out_undir,
-                                                                              rel_whitelist=rel_whitelist)
+        if not psl:
+            results_dict, run_id, head_pred_df, tail_pred_df = run_embed_pipeline(data_paths, i, params,
+                                                                                  train_conditions_id,
+                                                                                  G_out, test_subset,
+                                                                                  G_out_degree_dict,
+                                                                                  G_undir=G_out_undir,
+                                                                                  rel_whitelist=rel_whitelist)
+
+        else:
+            results_dict, run_id, head_pred_df, tail_pred_df = run_psl_pipeline(data_paths, i, params,
+                                                                                train_conditions_id,
+                                                                                G_out, test_subset, train_subset,
+                                                                                dataset,
+                                                                                G_out_degree_dict,
+                                                                                G_undir=G_out_undir,
+                                                                                psl_dir=None)
 
         # TODO: output embeddings from training
         # TODO: Doesn't make sense to keep reassigning this every loop. Create the run ID sooner

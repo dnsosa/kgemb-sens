@@ -2,6 +2,7 @@
 
 """Run the embedding pipeline."""
 
+import numpy as np
 import pandas as pd
 
 from pykeen.pipeline import pipeline
@@ -11,8 +12,11 @@ from kgemb_sens.analyze.metrics import calc_edge_input_statistics, calc_network_
 from kgemb_sens.transform.graph_utilities import undirect_multidigraph
 
 
-def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge,
+def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subset,
                        degree_dict=None, G_undir=None, rel_whitelist=None):
+
+    # Note rel_whitelist is pretty much redundant, since it's taken care of in creating the test set
+
     if G_undir is None:
         G_undir = undirect_multidigraph(G)
 
@@ -32,6 +36,9 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge,
             num_epochs=params["n_epochs"],
             use_tqdm_batch=False,
         ),
+        negative_sampler_kwargs=dict(
+            num_negs_per_pos=params["n_negatives"]
+        ),
         # Runtime configuration
         random_seed=1235
     )
@@ -42,7 +49,17 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge,
     test_triple.columns = ["source", "edge", "target"]
     u, r, v = test_triple['source'][0], test_triple['edge'][0], test_triple['target'][0]
 
-    edge_min_node_degree, edge_rel_count, e_deg = calc_edge_input_statistics(G, test_edge, degree_dict, G_undir=G_undir)
+    edge_min_node_degrees, edge_rel_counts, e_degs = [], [], []
+    for test_edge in test_subset:
+        edge_min_node_degree, edge_rel_count, e_deg = calc_edge_input_statistics(G, test_edge, degree_dict, G_undir=G_undir)
+        edge_min_node_degrees.append(edge_min_node_degrees)
+        edge_rel_counts.append(edge_rel_count)
+        e_degs.append(e_deg)
+
+    avg_edge_min_node_degrees = np.average(edge_min_node_degrees)
+    avg_edge_rel_counts = np.average(edge_rel_counts)
+    avg_e_degs = np.average(e_degs)
+
     net_stats = calc_network_input_statistics(G, calc_expensive=False, G_undir=G_undir)
     n_ent_network, n_rel_network, n_triples, n_conn_comps, med_rel_count, min_rel_count, rel_entropy, ent_entropy = net_stats
 
@@ -74,7 +91,10 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge,
                     'Contradiction_Frac': params["contradiction_frac"],
                     'Contra_Remove_Frac': params["contra_remove_frac"],
                     'MODE': params["MODE"],
+                    'PSL': params["psl"],
+                    'full_product': params["full_product"],
                     'Num_resamples': params["n_resample"],
+                    'Num_negative_samples': params["n_negatives"],
                     # 'Val_test_subset_idx': str(val_test_subset_idx),
                     'Num_epochs': params["n_epochs"],
                     'Repurposing evaluation': params["repurposing_evaluation"],
@@ -89,9 +109,9 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_edge,
                     'MRR': result.metric_results.get_metric('mean_reciprocal_rank'),
                     'Head Deg Rank Corr': head_deg_rank_corr,
                     'Tail Deg Rank Corr': tail_deg_rank_corr,
-                    'Edge Min Node Degree': edge_min_node_degree,
-                    'Edge Rel Count': edge_rel_count,
-                    'Edge Degree': e_deg,
+                    'Edge Min Node Degree': avg_edge_min_node_degrees,
+                    'Edge Rel Count': avg_edge_rel_counts,
+                    'Edge Degree': avg_e_degs,
                     'N Entities': n_ent_network,
                     'N Relations': n_rel_network,
                     'N Triples': n_triples,
