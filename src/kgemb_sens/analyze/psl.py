@@ -20,22 +20,56 @@ from kgemb_sens.transform.graph_utilities import undirect_multidigraph
 def run_psl_pipeline(data_paths, i, params, train_conditions_id, G, test_edges, train_edges, dataset="gnbr",
                        degree_dict=None, G_undir=None, psl_dir=PSL_DIR):
 
-    create_data_files_for_psl(train_edges, test_edges, psl_dir, int(params["num_negatives"]), params["full_product"])
+    create_data_files_for_psl(G, train_edges, test_edges, psl_dir, int(params["num_negatives"]), params["full_product"], dataset=params["dataset"])
 
     # Now create a PSL rules file
-    create_psl_rules_file()
+    create_psl_rules_file(params["dataset"], psl_dir)
 
     # Then run the thing....
 
     # And calculate all the metrics...
 
 
-def create_psl_rules_file():
-    pass
+def create_psl_rules_file(dataset, psl_dir):
+    # gnbr
+    if dataset == "gnbr":
+        drg_rels = ["Ap", "An", "B", "Ep", "En", "E", "N", "O", "K", "Z"]
+        gg_rels = ["B", "W", "Vp", "Ep", "E", "I", "H", "Rg", "Q"]
+        gdz_rels = ["Md", "X", "L", "U", "Ud", "D", "J", "Te", "Y", "G"]
+        drdz_rels = ["T", "C", "Sa", "Pr", "Pa", "J", "Mp"]
+        treats_rels = ["T", "Pa"]
+
+    # hetionet
+    else:
+        drg_rels = ["CuG", "CdG", "CbG"]
+        gg_rels = ["GcG", "GiG", "GrrG"]
+        gdz_rels = ["DaG", "DdG", "DuG"]
+        drdz_rels = ["CtD", "CpD"]
+        treats_rels = ["CtD", "CpD"]
+
+    # DrGDz Paths
+    drg_gdz_tuples = set(list(itertools.product(drg_rels, gdz_rels, treats_rels)))
+    drg_gg_gdz_tuples = set(list(itertools.product(drg_rels, gg_rels, gdz_rels, treats_rels)))
+    drdz_dzdr_drdz_tuples = set(
+        list(itertools.product(drdz_rels, drdz_rels, drdz_rels, treats_rels)))  # Note weirdness with the directionality
+    triple_non_equality = "A != B & B != C & A != C"
+    quad_non_equality = triple_non_equality + "A != D & B != D & C != D"
+    drgdz_rules = [f"10: {r1}(A, B) & {r2}(B, C) & {triple_non_equality} -> {t}(A, C) ^2" for (r1, r2, t) in
+                   drg_gdz_tuples]
+    drggdz_rules = [f"10: {r1}(A, B) & {r2}(B, C) & {r3}(C, D) & {quad_non_equality} -> {t}(A, D) ^2" for
+                    (r1, r2, r3, t) in drg_gg_gdz_tuples]
+    drdzdrdz_rules = [f"10: {r1}(A, B) & {r2}(B, C) & {r3}(C, D) & {quad_non_equality} -> {t}(A, D) ^2" for
+                      (r1, r2, r3, t) in drdz_dzdr_drdz_tuples]
+    neg_prior = [f"1: !{t}(X, Y) ^2" for t in treats_rels]
+
+    all_rules = drgdz_rules + drggdz_rules + drdzdrdz_rules + neg_prior
+    with open(f"{psl_dir}/{dataset}.psl", 'w') as fp:
+        fp.write('\n'.join(f'{rule}' for rule in all_rules))
 
 
-def create_data_files_for_psl(train_edges, test_edges, psl_dir, num_negatives, full_product):
+def create_data_files_for_psl(G, train_edges, test_edges, psl_dir, num_negatives, full_product, dataset):
 
+    # open the file, write the first line about the observed. Make note of which predicates will be open.
     # Prepare mappings and general compatibilities with PSL expectations
     os.makedirs(psl_dir, exist_ok=True)
     edge_name_map = {"A+": "Ap",
@@ -128,3 +162,18 @@ def create_data_files_for_psl(train_edges, test_edges, psl_dir, num_negatives, f
             with open(f'{psl_dir}/{test_edge_name_mapped}_truth.txt', 'w') as fp:
                 fp.write('\n'.join(f'{node_map[u]}\t{node_map[v]}\t1' for u, v in relevant_test_edges_tuples))
 
+    # Write the data file
+    closed_edge_names = edge_names.difference(test_edge_names)
+    with open(f'{psl_dir}/{dataset}.data', 'w') as fp:  # TODO: Choose a better directory structure
+        fp.write("predications:\n")
+        fp.write('\n'.join(f'   {map_edge_name(edge_name)}/2: closed' for edge_name in closed_edge_names))
+        fp.write('\n'.join(f'   {map_edge_name(edge_name)}/2: open' for edge_name in test_edge_names))
+        fp.write('\n')
+        fp.write("observations:\n")
+        fp.write('\n'.join(f'   {psl_dir}/{map_edge_name(edge_name)}_obs.txt' for edge_name in edge_names))
+        fp.write('\n')
+        fp.write("targets:\n")
+        fp.write('\n'.join(f'   {psl_dir}/{map_edge_name(edge_name)}_targets.txt' for edge_name in test_edge_names))
+        fp.write('\n')
+        fp.write("truth:\n")
+        fp.write('\n'.join(f'   {psl_dir}/{map_edge_name(edge_name)}_truth.txt' for edge_name in test_edge_names))
