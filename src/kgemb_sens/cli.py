@@ -57,6 +57,7 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--replace_edges/--no-replace_edges', 'replace_edges', default=True)
 @click.option('--MODE', 'MODE', default='contrasparsify')
 @click.option('--psl/--no-psl', 'psl', default=False)
+@click.option('--psl_contras/--no-psl_contras', 'psl_contras', default=False)
 @click.option('--full_prod/--no-full_prod', 'full_product', default=False)
 @click.option('--model_name', 'model_name', default='transe')
 @click.option('--n_epochs', 'n_epochs', default=200)
@@ -65,7 +66,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
          remove_E_filter, filter_in_antonyms, randomize_relations, single_relation, hub_remove_thresh,
          val_test_frac, val_frac, vt_alpha, test_min_edeg, test_max_edeg, test_min_mnd, test_max_mnd,
          sparsified_frac, alpha, n_resample, n_negatives, prob_type, flatten_kg, neg_completion_frac,
-         contradiction_frac, contra_remove_frac, replace_edges, MODE, psl, full_product,
+         contradiction_frac, contra_remove_frac, replace_edges, MODE, psl, psl_contras, full_product,
          model_name, n_epochs, repurposing_evaluation):
     """Run main function."""
 
@@ -101,6 +102,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
               "replace_edges": replace_edges,
               "MODE": MODE,  # "sparsification", "contrasparsify"
               "psl": psl,
+              "psl_contras": psl_contras,
               "full_product": full_product,
               "model_name": model_name,
               "n_epochs": n_epochs,
@@ -114,13 +116,17 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
     print("Loading data...")
     if dataset in ["nations", "umls", "countries", "kinships"]:
         G = load_benchmark_data_three_parts(dataset, data_dir)
-    elif dataset in ["gnbr_gg", "gnbr_drdz", "gnbr_drg", "drugbank_drdz", "drugbank_drg", "string_gg"]:
+    elif dataset in ["gnbr_gg", "gnbr_drdz", "gnbr_drg", "drugbank_drdz", "drugbank_drg", "string_gg", "gnbr", "hetionet"]:
         G = load_drkg_data(dataset, data_dir, pcnet_filter, pcnet_dir, dengue_filter, dengue_expand_depth)
         # Declare the dataset's antonym pairs. TODO: Should this be somewhere else?
         if dataset == "gnbr_drg":
             antonyms = [("E+", "E-"), ("A+", "A-")]
         elif dataset == "gnbr_drdz":
             antonyms = [("T", "J")]
+        elif dataset == "gnbr":
+            antonyms = [("E+", "E-"), ("A+", "A-"), ("T", "J")]
+        elif dataset == "hetionet":
+            antonyms = [("DdG", "DuG"), ("CuG", "CdG")]  # TODO: Test Hetionet's antonyms
     elif dataset == "covid":
         G = load_covid_graph(covidkg_dir)
         antonyms = [('increases', 'decreases'), ('positiveCorrelation', 'negativeCorrelation')]
@@ -209,7 +215,9 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
                                                                                 dataset,
                                                                                 G_out_degree_dict,
                                                                                 G_undir=G_out_undir,
-                                                                                psl_dir=None)
+                                                                                psl_dir=None,
+                                                                                psl_contras=psl_contras,
+                                                                                antonyms=antonyms)
 
         # TODO: output embeddings from training
         # TODO: Doesn't make sense to keep reassigning this every loop. Create the run ID sooner

@@ -92,6 +92,7 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subse
                     'Contra_Remove_Frac': params["contra_remove_frac"],
                     'MODE': params["MODE"],
                     'PSL': params["psl"],
+                    'PSL contradictions': params["psl_contras"],
                     'full_product': params["full_product"],
                     'Num_resamples': params["n_resample"],
                     'Num_negative_samples': params["n_negatives"],

@@ -15,16 +15,19 @@ from kgemb_sens.analyze.metrics import calc_edge_input_statistics, calc_network_
 from kgemb_sens.transform.graph_utilities import undirect_multidigraph
 
 # TODO: where should psl_dir be?
+PSL_DIR = "/Users/dnsosa/Desktop/AltmanLab/KGEmbSensitivity/psl_dir"
 
 
 def run_psl_pipeline(data_paths, i, params, train_conditions_id, G, test_edges, train_edges, dataset="gnbr",
-                       degree_dict=None, G_undir=None, psl_dir=PSL_DIR):
+                       degree_dict=None, G_undir=None, psl_dir=PSL_DIR, antonyms=None):
 
-    create_data_files_for_psl(G, train_edges, test_edges, psl_dir, int(params["num_negatives"]), params["full_product"], dataset=params["dataset"])
+    create_data_files_for_psl(G, train_edges, test_edges, psl_dir, int(params["num_negatives"]), params["full_product"],
+                              dataset=params["dataset"])
 
     # Now create a PSL rules file
-    create_psl_rules_file(params["dataset"], psl_dir)
+    create_psl_rules_file(params["dataset"], psl_dir, antonyms, psl_contras=params["psl_contras"],)
 
+    print("Done!")
     # Then run the thing....
 
     # And calculate all the metrics...
