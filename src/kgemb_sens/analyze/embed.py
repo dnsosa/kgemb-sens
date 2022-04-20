@@ -25,6 +25,7 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subse
     elif len(data_paths) == 3:
         new_train_path, new_val_path, new_test_path = data_paths
 
+    print("Now running pipeline...")
     result = pipeline(
         training=new_train_path,
         ##validation=new_val_path,
@@ -42,13 +43,15 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subse
         # Runtime configuration
         random_seed=1235
     )
+    print("Pipeline finished.")
 
     run_id = f"{train_conditions_id}_model{params['model_name']}"
 
     test_triple = pd.read_csv(new_test_path, header=None, sep="\t").drop_duplicates()
     test_triple.columns = ["source", "edge", "target"]
-    u, r, v = test_triple['source'][0], test_triple['edge'][0], test_triple['target'][0]
+    # u, r, v = test_triple['source'][0], test_triple['edge'][0], test_triple['target'][0]
 
+    print("Calculating test edge statistics...")
     edge_min_node_degrees, edge_rel_counts, e_degs = [], [], []
     for test_edge in test_subset:
         edge_min_node_degree, edge_rel_count, e_deg = calc_edge_input_statistics(G, test_edge, degree_dict, G_undir=G_undir)
@@ -59,15 +62,17 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subse
     avg_edge_min_node_degrees = np.average(edge_min_node_degrees)
     avg_edge_rel_counts = np.average(edge_rel_counts)
     avg_e_degs = np.average(e_degs)
+    print("Test edge statistics done.")
 
+    print("Calculating input network statistics..")
     net_stats = calc_network_input_statistics(G, calc_expensive=False, G_undir=G_undir)
     n_ent_network, n_rel_network, n_triples, n_conn_comps, med_rel_count, min_rel_count, rel_entropy, ent_entropy = net_stats
+    print("Done with network statistics.")
 
-    head_prediction_df = get_head_prediction_df(result.model, str(r), str(v), triples_factory=result.training)
-    tail_prediction_df = get_tail_prediction_df(result.model, str(u), str(r), triples_factory=result.training)
-
-    head_deg_rank_corr = calc_output_statistics(list(head_prediction_df.head_label), degree_dict)
-    tail_deg_rank_corr = calc_output_statistics(list(tail_prediction_df.tail_label), degree_dict)
+    # head_prediction_df = get_head_prediction_df(result.model, str(r), str(v), triples_factory=result.training)
+    # tail_prediction_df = get_tail_prediction_df(result.model, str(u), str(r), triples_factory=result.training)
+    # head_deg_rank_corr = calc_output_statistics(list(head_prediction_df.head_label), degree_dict)
+    # tail_deg_rank_corr = calc_output_statistics(list(tail_prediction_df.tail_label), degree_dict)
 
     results_dict = {'Dataset': params["dataset"],
                     'PCNet_filter': params["pcnet_filter"],
@@ -108,8 +113,8 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subse
                     'Hits@10': result.metric_results.get_metric('hits@10'),
                     'MR': result.metric_results.get_metric('mean_rank'),
                     'MRR': result.metric_results.get_metric('mean_reciprocal_rank'),
-                    'Head Deg Rank Corr': head_deg_rank_corr,
-                    'Tail Deg Rank Corr': tail_deg_rank_corr,
+                    #'Head Deg Rank Corr': head_deg_rank_corr,
+                    #'Tail Deg Rank Corr': tail_deg_rank_corr,
                     'Edge Min Node Degree': avg_edge_min_node_degrees,
                     'Edge Rel Count': avg_edge_rel_counts,
                     'Edge Degree': avg_e_degs,
@@ -124,4 +129,5 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subse
 
     print(results_dict)
 
-    return results_dict, run_id, head_prediction_df, tail_prediction_df
+    # return results_dict, run_id, head_prediction_df, tail_prediction_df
+    return results_dict, run_id
