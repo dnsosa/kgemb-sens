@@ -30,7 +30,7 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subse
         training=new_train_path,
         ##validation=new_val_path,
         testing=new_test_path,
-        evaluation_relation_whitelist=rel_whitelist,
+        ##evaluation_relation_whitelist=rel_whitelist,
         model=params["model_name"],
         # Training configuration
         training_kwargs=dict(
