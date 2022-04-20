@@ -36,8 +36,11 @@ def calc_edge_input_statistics(G, e, degree_dict, G_undir=None):
 
     # Edge statistics
     edge_min_node_degree = min(degree_dict[u], degree_dict[v])
+    print(f"Edge min node deg: {edge_min_node_degree}")
     edge_rel_count = G_rel_counter[edge_rel] - 1
+    print(f"edge_rel_count: {edge_rel_count}")
     e_deg = edge_degree(G_undir, e, degree_dict)
+    print(f"e_deg: {e_deg}")
 
     return edge_min_node_degree, edge_rel_count, e_deg
 

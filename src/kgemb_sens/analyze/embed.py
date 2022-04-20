@@ -61,8 +61,13 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subse
         edge_rel_counts.append(edge_rel_count)
         e_degs.append(e_deg)
 
+    print(f"edge_min_node_degrees: {edge_min_node_degrees}")
     avg_edge_min_node_degrees = np.average(edge_min_node_degrees)
+
+    print(f"edge_rel_counts: {edge_rel_counts}")
     avg_edge_rel_counts = np.average(edge_rel_counts)
+
+    print(f"e_degs: {e_degs}")
     avg_e_degs = np.average(e_degs)
     print("Test edge statistics done.")
 
