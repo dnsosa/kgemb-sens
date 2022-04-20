@@ -203,8 +203,8 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
         if not psl:
             # results_dict, run_id, head_pred_df, tail_pred_df = run_embed_pipeline(data_paths, i, params,
             results_dict, run_id = run_embed_pipeline(data_paths, i, params, train_conditions_id,
-                                                      G_out, test_subset, G_out_degree_dict, G_undir=G_out_undir,
-                                                      rel_whitelist=rel_whitelist)
+                                                      G_out, test_subset, degree_dict=G_out_degree_dict,
+                                                      G_undir=G_out_undir, rel_whitelist=rel_whitelist)
 
         else:
             # results_dict, run_id, head_pred_df, tail_pred_df = run_psl_pipeline(data_paths, i, params,

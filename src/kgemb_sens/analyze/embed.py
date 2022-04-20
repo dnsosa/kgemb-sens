@@ -54,6 +54,8 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subse
     print("Calculating test edge statistics...")
     edge_min_node_degrees, edge_rel_counts, e_degs = [], [], []
     for test_edge in test_subset:
+
+        print(f"Test edge: {test_edge}")
         edge_min_node_degree, edge_rel_count, e_deg = calc_edge_input_statistics(G, test_edge, degree_dict, G_undir=G_undir)
         edge_min_node_degrees.append(edge_min_node_degrees)
         edge_rel_counts.append(edge_rel_count)
