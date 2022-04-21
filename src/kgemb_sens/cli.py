@@ -176,6 +176,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
             rel_whitelist = {"T", "Pa"}
         elif dataset == "hetionet":
             rel_whitelist = {"CtD", "CpD"}
+    print(f"Relation whitelist: {rel_whitelist}")
 
     print("\n\nBeginning graph processing pipeline...")
     for i in range(n_resample):

@@ -186,6 +186,7 @@ def graph_processing_pipeline(G, i, params, out_dir,
     os.makedirs(out_dir, exist_ok=True)
 
     new_test_path = f"{out_dir}/test_{train_conditions_id}.tsv"
+    print(f"Saving test triples to: {new_test_path}")
     G_out_test_df = nx.to_pandas_edgelist(G_out_test)[['source', 'edge', 'target']]
     G_out_test_df.to_csv(new_test_path, sep='\t', header=False, index=False)
 
@@ -194,6 +195,7 @@ def graph_processing_pipeline(G, i, params, out_dir,
     ##G_out_val_df.to_csv(new_val_path, sep='\t', header=False, index=False)
 
     new_train_path = f"{out_dir}/train_{train_conditions_id}.tsv"
+    print(f"Saving train triples to: {new_train_path}")
     G_out_train_df = nx.to_pandas_edgelist(G_out_train)[['source', 'edge', 'target']]
     G_out_train_df.to_csv(new_train_path, sep='\t', header=False, index=False)
 
