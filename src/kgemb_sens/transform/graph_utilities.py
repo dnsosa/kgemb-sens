@@ -149,7 +149,7 @@ def random_split_list(in_list, val_frac):
 
 
 def remove_E(G):
-    E_free_edges = [e for e in G.edges(data=True) if e[-1]['edge'] != "E"]
+    E_free_edges = [e for e in G.edges(data=True) if e[-1]['edge'] not in ["E", "DaG", "CbG"]]
     print(f"New network without 'E' has len: {len(E_free_edges)}")
     return nx.MultiDiGraph(E_free_edges)
 
