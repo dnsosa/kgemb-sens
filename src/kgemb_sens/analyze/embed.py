@@ -26,8 +26,12 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subse
     elif len(data_paths) == 3:
         new_train_path, new_val_path, new_test_path = data_paths
 
-    G_train = nx.read_edgelist(new_train_path, create_using=nx.MultiDiGraph)
-    G_test = nx.read_edgelist(new_test_path, create_using=nx.MultiDiGraph)
+    train_df = pd.read_csv(new_train_path, sep="\t", header=None)
+    test_df = pd.read_csv(new_test_path, sep="\t", header=None)
+    train_df.columns = ["source", "edge", "target"]
+    test_df.columns = ["source", "edge", "target"]
+    G_train = nx.from_pandas_edgelist(train_df, source="source", target="target", edge_attr="edge", create_using=nx.MultiDiGraph)
+    G_test = nx.from_pandas_edgelist(test_df, source="source", target="target", edge_attr="edge", create_using=nx.MultiDiGraph)
 
     print(f"Num nodes in test: {G_test.number_of_nodes()}")
     print(f"Checking that the test nodes are in the train triples: {len(set(G_test.nodes()).intersection(set(G_train.nodes()))) == G_test.number_of_nodes()}")
