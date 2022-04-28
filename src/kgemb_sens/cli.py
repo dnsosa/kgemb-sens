@@ -209,9 +209,10 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
 
         else:
             # results_dict, run_id, head_pred_df, tail_pred_df = run_psl_pipeline(data_paths, i, params,
-            results_dict, run_id = run_psl_pipeline(data_paths, i, params, train_conditions_id, G_out, test_subset,
-                                                    train_subset, dataset, G_out_degree_dict, G_undir=G_out_undir,
-                                                    psl_dir=None, psl_contras=psl_contras, antonyms=antonyms)
+            results_dict, run_id = run_psl_pipeline(data_paths, i, params, train_conditions_id, G=G_out,
+                                                    test_edges=test_subset, train_edges=train_subset,
+                                                    out_dir=out_dir, degree_dict=G_out_degree_dict,
+                                                    G_undir=G_out_undir, antonyms=antonyms)
 
         # TODO: output embeddings from training
         # TODO: Doesn't make sense to keep reassigning this every loop. Create the run ID sooner
