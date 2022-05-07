@@ -49,7 +49,7 @@ def load_benchmark_data_three_parts(dataset, data_dir=DATA_DIR):
     return G
 
 
-def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCNET_DIR, dengue_filter=False, dengue_expand_depth=1):
+def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCNET_DIR, dengue_filter=False, dengue_expand_depth=1, clean_gnbr=True):
 
     # Assumes it's already extracted somewhere
     drkg_df = pd.read_csv(f"{data_dir}/PYKEEN_DATASETS/drkg.tsv", sep="\t")
@@ -156,6 +156,24 @@ def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCN
         G_dengue.add_edges_from(dn_edges)
 
         return G_dengue
+
+    if (dataset == "gnbr") and clean_gnbr:
+        print("Cleaning the full GNBR network...")
+        print(f"Num. nodes before cleanup: {G.number_of_nodes()}")
+
+        G_degree_dict = dict(G.degree())
+
+        # Clean the drug list
+        banned_drugs = [node for node in G.nodes() if ("Compound::MESH" in node) or (("Compound" in node) and (G_degree_dict[node] > 500))]
+        G.remove_nodes_from(banned_drugs)
+        print(f"Removing {len(banned_drugs)} sketchy drugs.")
+
+        # Clean the disease list
+        banned_diseases = [node for node in G.nodes() if ("Disease" in node) and (G_degree_dict[node] > 1000)]
+        G.remove_nodes_from(banned_diseases)
+        print(f"Removing {len(banned_diseases)} sketchy diseases.")
+
+        print(f"Num. nodes after cleanup: {G.number_of_nodes()} .")
 
     return G
 
