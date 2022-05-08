@@ -39,7 +39,7 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--single_relation/--no-single_relation', 'single_relation', default=False)
 @click.option('--hub_remove_thresh', 'hub_remove_thresh', default=float("inf"))
 @click.option('--val_test_frac', 'val_test_frac', default=1.0)
-@click.option('--val_frac', 'val_frac', default=0.0)
+@click.option('--val_frac', 'val_frac', default=0.0)  # CHANGE THIS!
 @click.option('--vt_alpha', 'vt_alpha', default=0.0)
 @click.option('--test_min_edeg', 'test_min_edeg', default=0.0)
 @click.option('--test_max_edeg', 'test_max_edeg', default=float("inf"))
@@ -181,6 +181,35 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
     print("\n\nBeginning graph processing pipeline...")
     for i in range(n_resample):
         print(f"\nSample {i}")
+
+        # If pre-sparsification is desired
+        if MODE == "contrasparsify":
+            if sparsified_frac > 0:
+                params["MODE"] = "sparsification"
+                params["val_test_frac"] = 1  # sacrifice one triple for this shortcut
+                params["alpha"] = 1  # prefer to remove hubs
+                data_paths, train_conditions_id, edge_divisions, G = graph_processing_pipeline(G, i, params,
+                                                                                               out_dir,
+                                                                                               all_valid_negations,
+                                                                                               all_rels, SEED,
+                                                                                               G_undir=G_undir,
+                                                                                               antonyms=antonyms,
+                                                                                               dist_mat=dist_mat,
+                                                                                               degree_dict=degree_dict,
+                                                                                               replace_edges=replace_edges,
+                                                                                               test_min_edeg=test_min_edeg,
+                                                                                               test_max_edeg=test_max_edeg,
+                                                                                               test_min_mnd=test_min_mnd,
+                                                                                               test_max_mnd=test_max_mnd,
+                                                                                               rel_whitelist=rel_whitelist)
+
+                degree_dict = dict(G.degree())
+                G_undir = undirect_multidigraph(G)
+                # note: no dist_mat
+
+        params["alpha"] = alpha
+        params["MODE"] = "contrasparsify"
+        params["val_test_frac"] = val_test_frac
         data_paths, train_conditions_id, edge_divisions, G_out = graph_processing_pipeline(G, i, params, out_dir,
                                                                                            all_valid_negations,
                                                                                            all_rels, SEED,
