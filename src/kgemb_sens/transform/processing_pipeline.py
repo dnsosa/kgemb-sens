@@ -49,6 +49,9 @@ def graph_processing_pipeline(G, i, params, out_dir,
                     for rel in rel_whitelist:
                         whitelist_count += G_rel_counter[rel]
                     val_test_set_size = good_round(params["val_test_frac"] * whitelist_count)
+                    print(f"Val test set size: {val_test_set_size}")
+                    print(f"Num whitelist edges: {whitelist_count}")
+                    print(f"Total number of edges {G.number_of_edges()}")
             else:
                 val_test_set_size = int(params["val_test_frac"])
 
@@ -57,6 +60,7 @@ def graph_processing_pipeline(G, i, params, out_dir,
                                            min_edeg=test_min_edeg, max_edeg=test_max_edeg,
                                            min_mnd=test_min_mnd, max_mnd=test_max_mnd,
                                            rel_whitelist=rel_whitelist))
+            print(f"OVERALL: Num non-zero probs for selecting test: {len([p for p in probabilities if p > 0])}")
             val_test_subset_idx = list(np.random.choice(len(edges), val_test_set_size, replace=False, p=probabilities))
 
             val_test_subset = []
@@ -133,8 +137,15 @@ def graph_processing_pipeline(G, i, params, out_dir,
             train_subset.remove(val_test_edge)
 
         if params["MODE"] == "sparsification":
-            for sparsified_edge in sparsified_subset:
-                train_subset.remove(sparsified_edge)
+            #for sparsified_edge in sparsified_subset:
+            #    # TODO: optimize this
+            #    train_subset.remove(sparsified_edge)
+
+            sparsified_subset_strs = set([str(edge) for edge in sparsified_subset])
+            print(f"Len train subset before sparsification: {len(train_subset)}")
+            train_subset = [train_edge for train_edge in train_subset if (str(train_edge) in sparsified_subset_strs)]
+            print(f"Len train subset after sparsification: {len(train_subset)}")
+
 
         nodes_in_train = set([item[0] for item in train_subset]).union(set([item[1] for item in train_subset]))
         relations_in_train = set([item[3]['edge'] for item in train_subset])

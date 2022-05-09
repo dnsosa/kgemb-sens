@@ -85,19 +85,24 @@ def prob_dist(edge,  # This edge is the input edge we want to calculate a distan
             print("No degree dict provided!")
         # Degree priority parameter: positive = prefer hubs, 0 = uniform, negative = deprioritize hubs
         u_dist = e_degs ** (float(alpha))
+        print(f"Num non-zero probs -- begin: {len([p for p in u_dist if p > 0])}")
         # Deal with 0 distances
         u_dist[u_dist == np.inf] = 0
+        print(f"Num non-zero probs -- no inf degree: {len([p for p in u_dist if p > 0])}")
+
 
     # Zero out edge degrees that are too high or low
     u_dist[e_degs < min_edeg] = 0
     u_dist[e_degs > max_edeg] = 0
     u_dist[e_mnds < min_mnd] = 0
     u_dist[e_mnds > max_mnd] = 0
+    print(f"Num non-zero probs -- bounded edeg and mnd: {len([p for p in u_dist if p > 0])}")
 
     # Zero out edges that aren't of the whitelist type
     if rel_whitelist is not None:
         in_whitelist_mask = [(other_edge[-1]['edge'] in rel_whitelist) for other_edge in all_edges]
         u_dist *= in_whitelist_mask
+        print(f"Num non-zero probs -- no non-whitelist type: {len([p for p in u_dist if p > 0])}")
 
     # Avoid hitting the input edge
     if edge in all_edges:  # might not be the case in the contradictification pipeline
@@ -106,6 +111,7 @@ def prob_dist(edge,  # This edge is the input edge we want to calculate a distan
 
     # Replace NaNs with 0s
     u_dist = np.nan_to_num(u_dist)
+    print(f"Num non-zero probs -- replace nan with 0: {len([p for p in u_dist if p > 0])}")
 
     # Normalize
     p_dist = u_dist / sum(u_dist)
@@ -122,20 +128,32 @@ def prob_dist_from_list(edge_set,
                         alpha=0):
     u_dist = np.zeros(len(all_edges))
     # Calculate probability dists based on individual edges, then sum together
-    for edge in edge_set:
-        u_dist += prob_dist(edge,
-                            all_edges,
-                            dist_mat,
-                            degree_dict,
-                            prob_type,
-                            graph,
-                            alpha)
+    if prob_type == "distance":
+        for edge in edge_set:
+            u_dist += prob_dist(edge,
+                                all_edges,
+                                dist_mat,
+                                degree_dict,
+                                prob_type,
+                                graph,
+                                alpha)
+    else:
+        u_dist = prob_dist(None, all_edges, dist_mat, degree_dict, prob_type, graph, alpha)
 
     # Make sure probability of test edges is 0
-    for edge in edge_set:
-        if edge in all_edges:  # NEW CHANGE
-            edge_idx = all_edges.index(edge)
-            u_dist[edge_idx] = 0
+    print(f"Num non-zero probs: {np.count_nonzero(u_dist)}")
+    edge_set_strs = set([str(edge) for edge in edge_set])  # to handle the dictionary which isn't hashable
+    u_dist *= [(str(edge) not in edge_set_strs) for edge in all_edges]
+    print(f"AFTER removing the test triples, num non-zero probs: {np.count_nonzero(u_dist)}")
+
+    # e_count = 0
+    # for edge in edge_set:
+    #     if edge in all_edges:  # NEW CHANGE
+    #         e_count += 1
+    #         if e_count % 500 == 0:
+    #             print(f"e_count: {e_count}")
+    #         edge_idx = all_edges.index(edge)
+    #         u_dist[edge_idx] = 0
 
     p_dist = u_dist / sum(u_dist)
 
@@ -168,7 +186,7 @@ def randomize_edges(G, rel_whitelist):
     edge_types_nonwhite = edge_types.difference(rel_whitelist)
     new_edges = []
     for e in G.edges(data=True):
-        edge_type = set([e[-1]['edge']])
+        edge_type = e[-1]['edge']
         if edge_type in rel_whitelist:
             new_edges.append(e)
         else:
@@ -184,7 +202,7 @@ def randomize_edges(G, rel_whitelist):
 def make_all_one_type(G, rel_whitelist):
     new_edges = []
     for e in G.edges(data=True):
-        edge_type = set([e[-1]['edge']])
+        edge_type = e[-1]['edge']
         if edge_type in rel_whitelist:
             new_edges.append(e)
         else:

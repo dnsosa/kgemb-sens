@@ -6,6 +6,8 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
+from collections import Counter
+
 from pykeen.pipeline import pipeline
 from pykeen.models.predict import get_tail_prediction_df, get_head_prediction_df
 
@@ -64,21 +66,28 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subse
 
     print("Calculating test edge statistics...")
     edge_min_node_degrees, edge_rel_counts, e_degs = [], [], []
+    test_edge_counter = 0
+    G_rel_set = [rel for _, _, rel in G.edges(data="edge")]
+    G_rel_counter = Counter(G_rel_set)
     for test_edge in test_subset:
-
         # print(f"Test edge: {test_edge}")
-        edge_min_node_degree, edge_rel_count, e_deg = calc_edge_input_statistics(G, test_edge, degree_dict, G_undir=G_undir)
+        edge_min_node_degree, edge_rel_count, e_deg = calc_edge_input_statistics(G, test_edge, degree_dict,
+                                                                                 G_undir=G_undir,
+                                                                                 G_rel_counter=G_rel_counter)
         edge_min_node_degrees.append(edge_min_node_degree)
         edge_rel_counts.append(edge_rel_count)
         e_degs.append(e_deg)
+        test_edge_counter += 1
+        if test_edge_counter % 100 == 0:
+            print(f"Processed {test_edge_counter} test edges")
 
-    print(f"edge_min_node_degrees: {edge_min_node_degrees}")
+    # print(f"edge_min_node_degrees: {edge_min_node_degrees}")
     avg_edge_min_node_degrees = np.average(edge_min_node_degrees)
 
-    print(f"edge_rel_counts: {edge_rel_counts}")
+    # print(f"edge_rel_counts: {edge_rel_counts}")
     avg_edge_rel_counts = np.average(edge_rel_counts)
 
-    print(f"e_degs: {e_degs}")
+    # print(f"e_degs: {e_degs}")
     avg_e_degs = np.average(e_degs)
     print("Test edge statistics done.")
 

@@ -14,8 +14,8 @@ from kgemb_sens.analyze.metrics_helpers import calc_scale_free_stats
 
 
 # NOTE: Should do for "flat" and non-flat network? Or mostly just non-flat
-def calc_edge_input_statistics(G, e, degree_dict, G_undir=None):
-    print("Inside calc edge input stats...")
+def calc_edge_input_statistics(G, e, degree_dict, G_undir=None, G_rel_counter=None):
+    # print("Inside calc edge input stats...")
     if G_undir is None:
         G_undir = undirect_multidigraph(G)
     if len(e) > 2:
@@ -27,20 +27,21 @@ def calc_edge_input_statistics(G, e, degree_dict, G_undir=None):
         edge_rel = None
     u, v = e[:2]
 
-    print("Creating a relation counter.")
-    G_rel_set = [rel for _, _, rel in G.edges(data="edge")]
-    # G = undirect_multidigraph(G)
-    G_rel_counter = Counter(G_rel_set)
-    print("Done with rel counter.")
-    print(f"Edge rel: {edge_rel}")
+    if G_rel_counter is None:
+        # print("Creating a relation counter.")
+        G_rel_set = [rel for _, _, rel in G.edges(data="edge")]
+        # G = undirect_multidigraph(G)
+        G_rel_counter = Counter(G_rel_set)
+    # print("Done with rel counter.")
+    # print(f"Edge rel: {edge_rel}")
 
     # Edge statistics
     edge_min_node_degree = min(degree_dict[u], degree_dict[v])
-    print(f"Edge min node deg: {edge_min_node_degree}")
+    # print(f"Edge min node deg: {edge_min_node_degree}")
     edge_rel_count = G_rel_counter[edge_rel] - 1
-    print(f"edge_rel_count: {edge_rel_count}")
+    # print(f"edge_rel_count: {edge_rel_count}")
     e_deg = edge_degree(G_undir, e, degree_dict)
-    print(f"e_deg: {e_deg}")
+    # print(f"e_deg: {e_deg}")
 
     return edge_min_node_degree, edge_rel_count, e_deg
 

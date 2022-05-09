@@ -130,6 +130,8 @@ def fill_with_contradictions(G, edge_names, val_test_subset, params, G_undir=Non
         if n_rel_edges == 0:
             continue
 
+        print(f"Filling with contras... now adding {edge_name} contras....")
+
         if params["prob_type"] == "distance":
             probabilities = prob_dist_from_list(val_test_subset,
                                                 rel_edges,
@@ -138,6 +140,7 @@ def fill_with_contradictions(G, edge_names, val_test_subset, params, G_undir=Non
                                                 graph=G_undir,
                                                 alpha=params["alpha"])
         elif params["prob_type"] == "degree":
+            print("calculating probs for fill with contra....")
             probabilities = prob_dist_from_list(val_test_subset,
                                                 rel_edges,
                                                 degree_dict=degree_dict,
