@@ -163,26 +163,40 @@ def filter_in_etype(G, edge_types):
     return nx.MultiDiGraph(filter_in_edges)
 
 
-def randomize_edges(G):
+def randomize_edges(G, rel_whitelist):
     edge_types = set([r for _, _, r in G.edges(data='edge')])
+    edge_types_nonwhite = edge_types.difference(rel_whitelist)
     new_edges = []
     for e in G.edges(data=True):
         edge_type = set([e[-1]['edge']])
-        alternate_edge_types = edge_types.difference(edge_type)
-        sampled_alternate = np.random.choice(list(alternate_edge_types), 1)
-        new_edge = (e[0], e[1], {'edge': sampled_alternate[0]})
-        new_edges.append(new_edge)
+        if edge_type in rel_whitelist:
+            new_edges.append(e)
+        else:
+            alternate_edge_types = edge_types_nonwhite.difference(edge_type)
+            sampled_alternate = np.random.choice(list(alternate_edge_types), 1)
+            new_edge = (e[0], e[1], {'edge': sampled_alternate[0]})
+            new_edges.append(new_edge)
 
     print(f"New network with replaced relations has len: {len(new_edges)}")
     return nx.MultiDiGraph(new_edges)
 
 
-def make_all_one_type(G):
-    blah_edges = [(u, v, {'edge': "blah"}) for u, v, _ in G.edges(data=True)]
-    return nx.MultiDiGraph(blah_edges)
+def make_all_one_type(G, rel_whitelist):
+    new_edges = []
+    for e in G.edges(data=True):
+        edge_type = set([e[-1]['edge']])
+        if edge_type in rel_whitelist:
+            new_edges.append(e)
+        else:
+            new_edge = (e[0], e[1], {'edge': 'blah'})
+            new_edges.append(new_edge)
+
+    # blah_edges = [(u, v, {'edge': "blah"}) for u, v, _ in G.edges(data=True)]
+    # return nx.MultiDiGraph(blah_edges)
+    return nx.MultiDiGraph(new_edges)
 
 
-def remove_hubs(G, hub_size=100):
+def remove_hubs(G, hub_size=500):
     degree_dict = dict(G.degree())
     large_deg_nodes = [node for node in degree_dict.keys() if degree_dict[node] > float(hub_size)]
     G2 = G.copy()

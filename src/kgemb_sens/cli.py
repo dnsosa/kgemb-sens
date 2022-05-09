@@ -131,6 +131,15 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
         G = load_covid_graph(covidkg_dir)
         antonyms = [('increases', 'decreases'), ('positiveCorrelation', 'negativeCorrelation')]
 
+    # Calculate the relevant whitelist if any
+    rel_whitelist = None
+    if repurposing_evaluation:
+        if "gnbr" in dataset:
+            rel_whitelist = {"T", "Pa"}
+        elif dataset == "hetionet":
+            rel_whitelist = {"CtD", "CpD"}
+    print(f"Relation whitelist: {rel_whitelist}")
+
     # Optional pre-processing as controls/debugging
     if hub_remove_thresh is not None:
         G = remove_hubs(G, hub_size=hub_remove_thresh)
@@ -139,9 +148,9 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
     if filter_in_antonyms:
         G = filter_in_etype(G, list(itertools.chain(*antonyms)))
     if randomize_relations:
-        G = randomize_edges(G)
+        G = randomize_edges(G, rel_whitelist)
     if single_relation:
-        G = make_all_one_type(G)
+        G = make_all_one_type(G, rel_whitelist)
 
     G_undir = undirect_multidigraph(G)
 
@@ -169,15 +178,6 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
     else:
         degree_dict = dict(G.degree())
 
-    # Calculate the relevant whitelist if any
-    rel_whitelist = None
-    if repurposing_evaluation:
-        if "gnbr" in dataset:
-            rel_whitelist = {"T", "Pa"}
-        elif dataset == "hetionet":
-            rel_whitelist = {"CtD", "CpD"}
-    print(f"Relation whitelist: {rel_whitelist}")
-
     print("\n\nBeginning graph processing pipeline...")
     for i in range(n_resample):
         print(f"\nSample {i}")
@@ -185,6 +185,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
         # If pre-sparsification is desired
         if MODE == "contrasparsify":
             if sparsified_frac > 0:
+                print(f"I'm doing the pre-sparse!! Sparse frac = {sparsified_frac}")
                 params["MODE"] = "sparsification"
                 params["val_test_frac"] = 1  # sacrifice one triple for this shortcut
                 params["alpha"] = 1  # prefer to remove hubs
