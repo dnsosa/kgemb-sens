@@ -49,7 +49,8 @@ def load_benchmark_data_three_parts(dataset, data_dir=DATA_DIR):
     return G
 
 
-def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCNET_DIR, dengue_filter=False, dengue_expand_depth=1, clean_gnbr=True):
+def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCNET_DIR,
+                   dengue_filter=False, dengue_expand_depth=1, clean_gnbr=True, get_lcc=True):
 
     # Assumes it's already extracted somewhere
     drkg_df = pd.read_csv(f"{data_dir}/PYKEEN_DATASETS/drkg.tsv", sep="\t")
@@ -158,7 +159,7 @@ def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCN
         return G_dengue
 
     if (dataset == "gnbr") and clean_gnbr:
-        print("Cleaning the full GNBR network...")
+        print("\nCleaning the full GNBR network...")
         print(f"Num. nodes before cleanup: {G.number_of_nodes()}")
 
         G_degree_dict = dict(G.degree())
@@ -174,6 +175,15 @@ def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCN
         print(f"Removing {len(banned_diseases)} sketchy diseases.")
 
         print(f"Num. nodes after cleanup: {G.number_of_nodes()} .")
+
+    if get_lcc:
+        print("\nFinally, getting largest connected component.")
+        G_undir = undirect_multidigraph(G)
+        lcc_nodes = max(nx.connected_components(G_undir), key=len)
+        G_lcc = G.subgraph(lcc_nodes).copy()
+        G = G_lcc
+        print(f"Removed {G.number_of_edges() - G_lcc.number_of_edges()} triples after filtering in only LCC...")
+        print(f"Final network has {G.number_of_edges()} edges and {G.number_of_nodes()}")
 
     return G
 
