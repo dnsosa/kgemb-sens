@@ -225,7 +225,8 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
                                                                                            test_max_edeg=test_max_edeg,
                                                                                            test_min_mnd=test_min_mnd,
                                                                                            test_max_mnd=test_max_mnd,
-                                                                                           rel_whitelist=rel_whitelist)
+                                                                                           rel_whitelist=rel_whitelist,
+                                                                                           dr_dz_whitelist_pairs=dr_dz_whitelist_pairs)
 
         G_out_undir = undirect_multidigraph(G_out)
         G_out_degree_dict = dict(G_out.degree())

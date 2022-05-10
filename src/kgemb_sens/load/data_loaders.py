@@ -181,8 +181,8 @@ def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCN
         G_undir = undirect_multidigraph(G)
         lcc_nodes = max(nx.connected_components(G_undir), key=len)
         G_lcc = G.subgraph(lcc_nodes).copy()
-        G = G_lcc
         print(f"Removed {G.number_of_edges() - G_lcc.number_of_edges()} triples after filtering in only LCC...")
+        G = G_lcc
         print(f"Final network has {G.number_of_edges()} edges and {G.number_of_nodes()}")
 
     return G
