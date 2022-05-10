@@ -17,6 +17,15 @@ def undirect_multidigraph(G):
     return G_undir
 
 
+def get_lcc(G):
+    G_undir = undirect_multidigraph(G)
+    lcc_nodes = max(nx.connected_components(G_undir), key=len)
+    G_lcc = G.subgraph(lcc_nodes).copy()
+    print(f"Removed {G.number_of_edges() - G_lcc.number_of_edges()} triples after filtering in only LCC...")
+    print(f"LCC network has {G_lcc.number_of_edges()} edges and {G_lcc.number_of_nodes()}")
+    return G_lcc
+
+
 def edge_dist(e1, e2, dist_mat):
     # TODO: Check that the edge is in the graph
     n11, n12, n21, n22 = e1[0], e1[1], e2[0], e2[1]
@@ -176,7 +185,9 @@ def random_split_list(in_list, val_frac):
 def remove_E(G):
     E_free_edges = [e for e in G.edges(data=True) if e[-1]['edge'] not in ["E", "DaG", "CbG"]]
     print(f"New network without 'E' has len: {len(E_free_edges)}")
-    return nx.MultiDiGraph(E_free_edges)
+    G = nx.MultiDiGraph(E_free_edges)
+    G_lcc = get_lcc(G)
+    return nx.MultiDiGraph(G_lcc.edges(data=True))  # Probably redundant
 
 
 def filter_in_etype(G, edge_types):
@@ -184,8 +195,10 @@ def filter_in_etype(G, edge_types):
     for edge in edge_types:
         filter_in_edges += [e for e in G.edges(data=True) if e[-1]['edge'] == edge]
 
+    G = nx.MultiDiGraph(filter_in_edges)
+    G_lcc = get_lcc(G)
     print(f"New network with {edge_types} filtered in has len: {len(filter_in_edges)}")
-    return nx.MultiDiGraph(filter_in_edges)
+    return nx.MultiDiGraph(G_lcc.edges(data=True))  # Probably redundant
 
 
 def randomize_edges(G, rel_whitelist):
@@ -229,8 +242,13 @@ def remove_hubs(G, hub_size=500):
     large_deg_nodes = [node for node in degree_dict.keys() if degree_dict[node] > float(hub_size)]
     G2 = G.copy()
     G2.remove_nodes_from(large_deg_nodes)
+    G2 = get_lcc(G2)
     print(f"New network without hubs of degree {hub_size} or greater has len: {G2.number_of_edges()}")
     return nx.MultiDiGraph(G2.edges(data=True))
+
+
+
+
 
 
 
