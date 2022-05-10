@@ -66,7 +66,8 @@ def prob_dist(edge,  # This edge is the input edge we want to calculate a distan
               max_edeg=float("inf"),
               min_mnd=0,
               max_mnd=float("inf"),
-              rel_whitelist=None):
+              rel_whitelist=None,
+              whitelist_pairs=None):
     # NOTE: Assumes that graph is the undirected version
     e_degs = np.array([edge_degree(graph, other_edge, degree_dict) for other_edge in all_edges])
     e_mnds = np.array([min_node_degree(other_edge, degree_dict) for other_edge in all_edges])
@@ -98,11 +99,17 @@ def prob_dist(edge,  # This edge is the input edge we want to calculate a distan
     u_dist[e_mnds > max_mnd] = 0
     print(f"Num non-zero probs -- bounded edeg and mnd: {len([p for p in u_dist if p > 0])}")
 
-    # Zero out edges that aren't of the whitelist type
-    if rel_whitelist is not None:
-        in_whitelist_mask = [(other_edge[-1]['edge'] in rel_whitelist) for other_edge in all_edges]
-        u_dist *= in_whitelist_mask
-        print(f"Num non-zero probs -- no non-whitelist type: {len([p for p in u_dist if p > 0])}")
+    if whitelist_pairs is None:
+        # Zero out edges that aren't of the whitelist relation type
+        if rel_whitelist is not None:
+            in_whitelist_rel_mask = [(other_edge[-1]['edge'] in rel_whitelist) for other_edge in all_edges]
+            u_dist *= in_whitelist_rel_mask
+            print(f"Num non-zero probs -- no non-whitelist type: {len([p for p in u_dist if p > 0])}")
+
+    # If whitelist pairs is specified, that takes precedent. Zero out edges that aren't whitelist pairs
+    else:
+        in_whitelist_pairs_mask = [((other_edge[0], other_edge[1]) in whitelist_pairs) for other_edge in all_edges]
+        u_dist *= in_whitelist_pairs_mask
 
     # Avoid hitting the input edge
     if edge in all_edges:  # might not be the case in the contradictification pipeline
@@ -201,17 +208,20 @@ def randomize_edges(G, rel_whitelist):
 
 def make_all_one_type(G, rel_whitelist):
     new_edges = []
-    for e in G.edges(data=True):
-        edge_type = e[-1]['edge']
-        if edge_type in rel_whitelist:
-            new_edges.append(e)
-        else:
-            new_edge = (e[0], e[1], {'edge': 'blah'})
-            new_edges.append(new_edge)
+    #for e in G.edges(data=True):
+    #    edge_type = e[-1]['edge']
+        #if edge_type in rel_whitelist:
+        #    new_edges.append(e)
+        #else:
+        #    new_edge = (e[0], e[1], {'edge': 'blah'})
+        #    new_edges.append(new_edge)
 
-    # blah_edges = [(u, v, {'edge': "blah"}) for u, v, _ in G.edges(data=True)]
-    # return nx.MultiDiGraph(blah_edges)
-    return nx.MultiDiGraph(new_edges)
+    #return nx.MultiDiGraph(new_edges)
+    edges = G.edges(data=True)
+    dr_dz_whitelist_pairs = set([(e[0], e[1]) for e in edges if e[-1]['edge'] in rel_whitelist])
+
+    blah_edges = [(u, v, {'edge': "blah"}) for u, v, _ in edges]
+    return nx.MultiDiGraph(blah_edges), dr_dz_whitelist_pairs
 
 
 def remove_hubs(G, hub_size=500):

@@ -141,6 +141,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
     print(f"Relation whitelist: {rel_whitelist}")
 
     # Optional pre-processing as controls/debugging
+    dr_dz_whitelist_pairs = None
     if hub_remove_thresh is not None:
         G = remove_hubs(G, hub_size=hub_remove_thresh)
     if remove_E_filter:
@@ -150,7 +151,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
     if randomize_relations:
         G = randomize_edges(G, rel_whitelist)
     if single_relation:
-        G = make_all_one_type(G, rel_whitelist)
+        G, dr_dz_whitelist_pairs = make_all_one_type(G, rel_whitelist)
 
     G_undir = undirect_multidigraph(G)
 
@@ -202,7 +203,8 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
                                                                                                test_max_edeg=test_max_edeg,
                                                                                                test_min_mnd=test_min_mnd,
                                                                                                test_max_mnd=test_max_mnd,
-                                                                                               rel_whitelist=rel_whitelist)
+                                                                                               rel_whitelist=rel_whitelist,
+                                                                                               dr_dz_whitelist_pairs=dr_dz_whitelist_pairs)
 
                 degree_dict = dict(G.degree())
                 G_undir = undirect_multidigraph(G)

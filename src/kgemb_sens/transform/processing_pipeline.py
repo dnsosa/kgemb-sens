@@ -18,7 +18,7 @@ def graph_processing_pipeline(G, i, params, out_dir,
                               all_valid_negations=None, edge_names=None, SEED=1, G_undir=None, antonyms=None,
                               dist_mat=None, degree_dict=None, in_val_test_subset=None, replace_edges=False,
                               test_min_edeg=0, test_max_edeg=float("inf"), test_min_mnd=0, test_max_mnd=float("inf"),
-                              rel_whitelist=None):
+                              rel_whitelist=None, dr_dz_whitelist_pairs=None):
 
     if G_undir is None:
         G_undir = undirect_multidigraph(G)
@@ -44,14 +44,18 @@ def graph_processing_pipeline(G, i, params, out_dir,
                 if rel_whitelist is None:
                     val_test_set_size = good_round(params["val_test_frac"] * G.number_of_edges())
                 else:
-                    whitelist_count = 0
-                    G_rel_counter = Counter([r for _, _, r in G.edges(data='edge')])
-                    for rel in rel_whitelist:
-                        whitelist_count += G_rel_counter[rel]
-                    val_test_set_size = good_round(params["val_test_frac"] * whitelist_count)
-                    print(f"Val test set size: {val_test_set_size}")
-                    print(f"Num whitelist edges: {whitelist_count}")
-                    print(f"Total number of edges {G.number_of_edges()}")
+                    # If there is a collection of dr_dz pairs (indicating the single relation type condition)
+                    if dr_dz_whitelist_pairs is not None:
+                        val_test_set_size = good_round(params["val_test_frac"] * len(dr_dz_whitelist_pairs))
+                    else:
+                        whitelist_count = 0
+                        G_rel_counter = Counter([r for _, _, r in G.edges(data='edge')])
+                        for rel in rel_whitelist:
+                            whitelist_count += G_rel_counter[rel]
+                        val_test_set_size = good_round(params["val_test_frac"] * whitelist_count)
+                        print(f"Val test set size: {val_test_set_size}")
+                        print(f"Num whitelist edges: {whitelist_count}")
+                        print(f"Total number of edges {G.number_of_edges()}")
             else:
                 val_test_set_size = int(params["val_test_frac"])
 
@@ -59,7 +63,7 @@ def graph_processing_pipeline(G, i, params, out_dir,
                                            graph=G_undir, alpha=params["vt_alpha"],
                                            min_edeg=test_min_edeg, max_edeg=test_max_edeg,
                                            min_mnd=test_min_mnd, max_mnd=test_max_mnd,
-                                           rel_whitelist=rel_whitelist))
+                                           rel_whitelist=rel_whitelist, whitelist_pairs=dr_dz_whitelist_pairs))
             print(f"OVERALL: Num non-zero probs for selecting test: {len([p for p in probabilities if p > 0])}")
             val_test_subset_idx = list(np.random.choice(len(edges), val_test_set_size, replace=False, p=probabilities))
 
@@ -151,6 +155,8 @@ def graph_processing_pipeline(G, i, params, out_dir,
         relations_in_train = set([item[3]['edge'] for item in train_subset])
 
         test_not_in_train = False
+        print(f"Test subset!! sample: {test_subset[:10]}")
+
         for u, v, k, r in test_subset:
             if (u not in nodes_in_train) or (v not in nodes_in_train):
                 test_not_in_train = True
@@ -186,6 +192,7 @@ def graph_processing_pipeline(G, i, params, out_dir,
 
     G_out_test = nx.MultiDiGraph()
     G_out_test.add_edges_from(test_subset)
+    print(f"Test subset 2!! sample: {list(G_out_test.edges(data=True))[:10]}")
     ##G_out_val = nx.MultiDiGraph()
     ##G_out_val.add_edges_from(val_subset)
     G_out.remove_edges_from(val_test_subset)
