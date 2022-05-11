@@ -65,12 +65,32 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subse
     # u, r, v = test_triple['source'][0], test_triple['edge'][0], test_triple['target'][0]
 
     print("Calculating test edge statistics...")
+    head_ranks = []
+    num_valid_heads = []
+    tail_ranks = []
+    num_valid_tails = []
+    us, vs, rs = [], [], []
     edge_min_node_degrees, edge_rel_counts, e_degs = [], [], []
     test_edge_counter = 0
     G_rel_set = [rel for _, _, rel in G.edges(data="edge")]
     G_rel_counter = Counter(G_rel_set)
     for test_edge in test_subset:
         # print(f"Test edge: {test_edge}")
+        u, v, r = test_edge[0], test_edge[1], test_edge[-1]['edge']
+        us.append(u)
+        vs.append(v)
+        rs.append(r)
+
+        head_prediction_df = get_head_prediction_df(result.model, str(r), str(v), triples_factory=result.training)
+        valid_drug_preds = [label for label in head_prediction_df.head_label if 'Compound' in label]
+        head_ranks.append(valid_drug_preds.index(u))
+        num_valid_heads.append(len(valid_drug_preds))
+
+        tail_prediction_df = get_tail_prediction_df(result.model, str(u), str(r), triples_factory=result.training)
+        valid_disease_preds = [label for label in tail_prediction_df.tail_label if 'Disease' in label]
+        tail_ranks.append(valid_disease_preds.index(v))
+        num_valid_tails.append(len(valid_disease_preds))
+
         edge_min_node_degree, edge_rel_count, e_deg = calc_edge_input_statistics(G, test_edge, degree_dict,
                                                                                  G_undir=G_undir,
                                                                                  G_rel_counter=G_rel_counter)
@@ -80,6 +100,18 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subse
         test_edge_counter += 1
         if test_edge_counter % 100 == 0:
             print(f"Processed {test_edge_counter} test edges")
+
+    test_ranks_df = pd.DataFrame()
+    test_ranks_df["head_ranks"] = head_ranks
+    test_ranks_df["num_valid_heads"] = num_valid_heads
+    test_ranks_df["tail_ranks"] = tail_ranks
+    test_ranks_df["num_valid_tails"] = num_valid_tails
+    test_ranks_df["source"] = us
+    test_ranks_df["edge"] = rs
+    test_ranks_df["target"] = vs
+    test_ranks_df["e_mnd"] = edge_min_node_degrees
+    test_ranks_df["e_rel_counts"] = edge_rel_counts
+    test_ranks_df["e_degs"] = e_degs
 
     # print(f"edge_min_node_degrees: {edge_min_node_degrees}")
     avg_edge_min_node_degrees = np.average(edge_min_node_degrees)
@@ -157,4 +189,4 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subse
     print(results_dict)
 
     # return results_dict, run_id, head_prediction_df, tail_prediction_df
-    return results_dict, run_id
+    return results_dict, run_id, test_ranks_df

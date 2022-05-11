@@ -236,9 +236,9 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
 
         if not psl:
             # results_dict, run_id, head_pred_df, tail_pred_df = run_embed_pipeline(data_paths, i, params,
-            results_dict, run_id = run_embed_pipeline(data_paths, i, params, train_conditions_id,
-                                                      G_out, test_subset, degree_dict=G_out_degree_dict,
-                                                      G_undir=G_out_undir, rel_whitelist=rel_whitelist)
+            results_dict, run_id, test_ranks_df = run_embed_pipeline(data_paths, i, params, train_conditions_id,
+                                                                     G_out, test_subset, degree_dict=G_out_degree_dict,
+                                                                     G_undir=G_out_undir, rel_whitelist=rel_whitelist)
 
         else:
             # results_dict, run_id, head_pred_df, tail_pred_df = run_psl_pipeline(data_paths, i, params,
@@ -255,6 +255,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
 
         # head_pred_df.to_csv(f"{save_dir}/head_pred_run_{i}.tsv", sep='\t', header=True, index=False)
         # tail_pred_df.to_csv(f"{save_dir}/tail_pred_run_{i}.tsv", sep='\t', header=True, index=False)
+        test_ranks_df.to_csv(f"{save_dir}/test_ranks_df_run_{i}.tsv", sep='\t', header=True, index=False)
 
         print("\nDone embedding.\n")
         all_results_list.append(results_dict)
