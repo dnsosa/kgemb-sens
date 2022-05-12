@@ -22,7 +22,7 @@ def get_lcc(G):
     lcc_nodes = max(nx.connected_components(G_undir), key=len)
     G_lcc = G.subgraph(lcc_nodes).copy()
     print(f"Removed {G.number_of_edges() - G_lcc.number_of_edges()} triples after filtering in only LCC...")
-    print(f"LCC network has {G_lcc.number_of_edges()} edges and {G_lcc.number_of_nodes()}")
+    print(f"LCC network has {G_lcc.number_of_edges()} edges and {G_lcc.number_of_nodes()} nodes")
     return G_lcc
 
 

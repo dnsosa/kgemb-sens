@@ -46,7 +46,7 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--test_min_mnd', 'test_min_mnd', default=0.0)
 @click.option('--test_max_mnd', 'test_max_mnd', default=float("inf"))
 @click.option('--sparsified_frac', 'sparsified_frac', default=0.0)
-@click.option('--alpha', 'alpha', default=0.0)
+@click.option('--alpha', 'alpha', default=1.0)
 @click.option('--n_resample', 'n_resample', default=100)
 @click.option('--n_negatives', 'n_negatives', default=1)
 @click.option('--prob_type', 'prob_type', default='degree')
@@ -210,9 +210,10 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
                 G_undir = undirect_multidigraph(G)
                 # note: no dist_mat
 
-        params["alpha"] = alpha
-        params["MODE"] = "contrasparsify"
-        params["val_test_frac"] = val_test_frac
+                params["alpha"] = alpha
+                params["MODE"] = "contrasparsify"
+                params["val_test_frac"] = val_test_frac
+
         data_paths, train_conditions_id, edge_divisions, G_out = graph_processing_pipeline(G, i, params, out_dir,
                                                                                            all_valid_negations,
                                                                                            all_rels, SEED,
