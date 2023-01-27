@@ -13,6 +13,42 @@ from kgemb_sens.transform.graph_utilities import edge_degree, undirect_multidigr
 from kgemb_sens.analyze.metrics_helpers import calc_scale_free_stats
 
 
+def calculate_entity_entropy(G):
+    """
+    Calculate entity entropy for input KG.
+
+    :param G: input KG
+    """
+    pass
+
+
+def calculate_relational_entropy(G):
+    """
+    Calculate relational entropy for input KG.
+
+    :param G: input KG
+    """
+    pass
+
+
+def calculate_eigenvalues(G):
+    """
+    Calculate eigenvalues as a global measure of topology.
+
+    :param G: input KG
+    """
+    pass
+
+
+def calculate_degree(G):
+    """
+    Return degree distribution for input KG.
+
+    :param G: input KG
+    """
+    pass
+
+
 # NOTE: Should do for "flat" and non-flat network? Or mostly just non-flat
 def calc_edge_input_statistics(G, e, degree_dict, G_undir=None, G_rel_counter=None):
     # print("Inside calc edge input stats...")

@@ -15,6 +15,20 @@ from kgemb_sens.analyze.metrics import calc_edge_input_statistics, calc_network_
 from kgemb_sens.transform.graph_utilities import undirect_multidigraph
 
 
+def evaluate(G, task, setting, method, metric, n_neg_samples):
+    """
+    Evaluate KG embedding performance for input KGEmb.
+
+    :param G: input KG
+    :param task: prediction task (repurposing, target ID, disease-gene assoc?)
+    :param setting: evaluation setting (T1: single edge reconstruct, T2: hidden test fraction)
+    :param method: embedding method (RotatE, DistMult, etc.)
+    :param metric: performance metric (MRR, AMRI, etc.)
+    :param m_neg_samples: number of negative samples
+    """
+    pass
+
+
 def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subset,
                        degree_dict=None, G_undir=None, rel_whitelist=None):
 

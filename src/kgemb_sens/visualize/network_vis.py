@@ -8,7 +8,7 @@ import networkx as nx
 
 
 def plot_graph_nice(G, save_dir, train_subset, test_subset, sparse_subset=None, new_contradictions=None,
-                    removed_contradictions=None):
+                    removed_contradictions=None, save_fig=False):
     np.random.seed(1238)
     pos = nx.spring_layout(G)
 
@@ -45,4 +45,7 @@ def plot_graph_nice(G, save_dir, train_subset, test_subset, sparse_subset=None, 
     plt.axis('off')
     # plt.show()
 
-    plt.savefig(f"{save_dir}/test_network_out.png")
+    if save_fig:
+        plt.savefig(f"{save_dir}/test_network_out.png")
+
+    return None

@@ -4,7 +4,7 @@
 
 import unittest
 
-from kgemb_sens.load.data_loaders import load_benchmark_data_three_parts, load_drkg_data
+from kgemb_sens.load.network_load import load_benchmark_data_three_parts, load_drkg_data
 from kgemb_sens.analyze.metrics import calc_network_input_statistics
 
 DATA_DIR = "/Users/dnsosa/.data/pykeen/datasets"
