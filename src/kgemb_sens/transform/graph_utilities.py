@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """Utilities (helper functions) for KG processing pipeline, which entails manipulating KGs."""
+import itertools
 import random
 import networkx as nx
 import numpy as np
@@ -76,7 +77,8 @@ def prob_dist(edge,  # This edge is the input edge we want to calculate a distan
               min_mnd=0,
               max_mnd=float("inf"),
               rel_whitelist=None,
-              whitelist_pairs=None):
+              whitelist_pairs=None,
+              test_node_set=None):
     # NOTE: Assumes that graph is the undirected version
     e_degs = np.array([edge_degree(graph, other_edge, degree_dict) for other_edge in all_edges])
     e_mnds = np.array([min_node_degree(other_edge, degree_dict) for other_edge in all_edges])
@@ -98,8 +100,7 @@ def prob_dist(edge,  # This edge is the input edge we want to calculate a distan
         print(f"Num non-zero probs -- begin: {len([p for p in u_dist if p > 0])}")
         # Deal with 0 distances
         u_dist[u_dist == np.inf] = 0
-        print(f"Num non-zero probs -- no inf degree: {len([p for p in u_dist if p > 0])}")
-
+        # print(f"Num non-zero probs -- no inf degree: {len([p for p in u_dist if p > 0])}")
 
     # Zero out edge degrees that are too high or low
     u_dist[e_degs < min_edeg] = 0
@@ -119,6 +120,12 @@ def prob_dist(edge,  # This edge is the input edge we want to calculate a distan
     else:
         in_whitelist_pairs_mask = [((other_edge[0], other_edge[1]) in whitelist_pairs) for other_edge in all_edges]
         u_dist *= in_whitelist_pairs_mask
+
+    # New condition: avoid hitting any edge that has a node in test
+    if test_node_set is not None:
+        contains_no_test_node = [(len(set([other_edge[0], other_edge[1]]).intersection(test_node_set)) == 0) for other_edge in all_edges]
+        u_dist *= contains_no_test_node
+    print(u_dist)
 
     # Avoid hitting the input edge
     if edge in all_edges:  # might not be the case in the contradictification pipeline
@@ -144,6 +151,7 @@ def prob_dist_from_list(edge_set,
                         alpha=0):
     u_dist = np.zeros(len(all_edges))
     # Calculate probability dists based on individual edges, then sum together
+    test_node_set = set(list(itertools.chain(*[(u, v) for u, v, _, _ in edge_set])))
     if prob_type == "distance":
         for edge in edge_set:
             u_dist += prob_dist(edge,
@@ -152,16 +160,17 @@ def prob_dist_from_list(edge_set,
                                 degree_dict,
                                 prob_type,
                                 graph,
-                                alpha)
+                                alpha,
+                                test_node_set=test_node_set)
     else:
-        u_dist = prob_dist(None, all_edges, dist_mat, degree_dict, prob_type, graph, alpha)
+        u_dist = prob_dist(None, all_edges, dist_mat, degree_dict, prob_type, graph, alpha, test_node_set=test_node_set)
 
     # Make sure probability of test edges is 0
     print(f"Num non-zero probs: {np.count_nonzero(u_dist)}")
     edge_set_strs = set([str(edge) for edge in edge_set])  # to handle the dictionary which isn't hashable
     u_dist *= [(str(edge) not in edge_set_strs) for edge in all_edges]
     print(f"AFTER removing the test triples, num non-zero probs: {np.count_nonzero(u_dist)}")
-
+    print(f"\n\n\n{u_dist}")
     # e_count = 0
     # for edge in edge_set:
     #     if edge in all_edges:  # NEW CHANGE

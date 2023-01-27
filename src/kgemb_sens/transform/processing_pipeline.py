@@ -4,13 +4,14 @@
 
 import os
 
+import itertools
 import networkx as nx
 import numpy as np
 
 from collections import Counter
 
 from kgemb_sens.transform.contradiction_utilities import fill_with_contradictions, negative_completion, remove_contradictions
-from kgemb_sens.transform.graph_utilities import prob_dist, prob_dist_from_list, random_split_list, undirect_multidigraph
+from kgemb_sens.transform.graph_utilities import prob_dist, prob_dist_from_list, random_split_list, undirect_multidigraph, edge_degree, min_node_degree
 from kgemb_sens.utilities import good_round
 
 
@@ -33,6 +34,14 @@ def graph_processing_pipeline(G, i, params, out_dir,
         G = negative_completion(G, all_valid_negations, edge_names, params["neg_completion_frac"])
 
     edges = list(G.edges(data=True, keys=True))
+    e_degs = np.array([edge_degree(G_undir, other_edge, degree_dict) for other_edge in edges])
+    e_mnds = np.array([min_node_degree(other_edge, degree_dict) for other_edge in edges])
+    passes_deg_filters = ((e_degs >= test_min_edeg) * (e_degs <= test_max_edeg) * (e_mnds >= test_min_mnd) * (e_mnds <= test_max_mnd))
+    whitelist_type = np.array([(edge[-1]['edge'] in rel_whitelist) for edge in edges])
+    print(f"Num passes deg filters: {np.sum(passes_deg_filters)}")
+    print(f"Num whitelist type: {np.sum(whitelist_type)}")
+    num_valid_test_edges = np.sum(passes_deg_filters * whitelist_type)
+    print(f"Num valid test edges: {num_valid_test_edges}")
 
     while not found_one:
 
@@ -52,7 +61,9 @@ def graph_processing_pipeline(G, i, params, out_dir,
                         G_rel_counter = Counter([r for _, _, r in G.edges(data='edge')])
                         for rel in rel_whitelist:
                             whitelist_count += G_rel_counter[rel]
-                        val_test_set_size = good_round(params["val_test_frac"] * whitelist_count)
+                        # TODO: change the count so it's 80/20 split of eligible edges (MND and edge degree)
+                        # TODO 2: check that this all works at sparsity = 1. And with the
+                        val_test_set_size = good_round(params["val_test_frac"] * min(num_valid_test_edges, whitelist_count))
                         print(f"Val test set size: {val_test_set_size}")
                         print(f"Num whitelist edges: {whitelist_count}")
                         print(f"Total number of edges {G.number_of_edges()}")
@@ -102,8 +113,17 @@ def graph_processing_pipeline(G, i, params, out_dir,
 
         train_subset = edges[:]
 
+        # Calculate number of edges adjacent to the test nodes
+        test_node_set = set(list(itertools.chain(*[(u, v) for u, v, _, _ in val_test_subset])))
+        edges_adj_to_test = [edge for edge in edges if (len(set([edge[0], edge[1]]).intersection(test_node_set)) > 0)]
+        print("FINAL PRE-SPARSE STATS:")
+        print(f"len val_test_subset: {len(val_test_subset)}")
+        print(f"len edges adj_to_test: {len(edges_adj_to_test)}")
+
         if params["MODE"] == "sparsification":
-            sparsified_set_size = good_round(params["sparsified_frac"] * G.number_of_edges())
+            # parsified_set_size = good_round(params["sparsified_frac"] * G.number_of_edges())
+            sparsified_set_size = good_round(params["sparsified_frac"] * (len(edges) - len(edges_adj_to_test)))
+            print(f"SIZE OF SPARSIFIED SUBSET: {sparsified_set_size}")
 
             if np.count_nonzero(probabilities) > sparsified_set_size:
                 found_one = True
@@ -147,9 +167,8 @@ def graph_processing_pipeline(G, i, params, out_dir,
 
             sparsified_subset_strs = set([str(edge) for edge in sparsified_subset])
             print(f"Len train subset before sparsification: {len(train_subset)}")
-            train_subset = [train_edge for train_edge in train_subset if (str(train_edge) in sparsified_subset_strs)]
+            train_subset = [train_edge for train_edge in train_subset if (str(train_edge) not in sparsified_subset_strs)]
             print(f"Len train subset after sparsification: {len(train_subset)}")
-
 
         nodes_in_train = set([item[0] for item in train_subset]).union(set([item[1] for item in train_subset]))
         relations_in_train = set([item[3]['edge'] for item in train_subset])
