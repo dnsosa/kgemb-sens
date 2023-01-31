@@ -12,6 +12,8 @@ from scipy.stats import entropy
 from kgemb_sens.transform.graph_utilities import edge_degree, undirect_multidigraph
 from kgemb_sens.analyze.metrics_helpers import calc_scale_free_stats
 
+from ..utilities import net2df
+
 
 def calculate_entity_entropy(G):
     """
@@ -19,16 +21,26 @@ def calculate_entity_entropy(G):
 
     :param G: input KG
     """
-    pass
+    G_df = net2df(G)
+    node_io_degs_dict = Counter(G_df.source) + Counter(G_df.target)
+    node_io_degs_list = list(node_io_degs_dict.values())
+    G_esp_dist = np.array(node_io_degs_list) / (2 * len(G_df))
+    entity_entropy = entropy(G_esp_dist)
+    return entity_entropy
 
 
-def calculate_relational_entropy(G):
+def calculate_relation_entropy(G):
     """
-    Calculate relational entropy for input KG.
+    Calculate relation entropy for input KG.
 
     :param G: input KG
     """
-    pass
+    G_df = net2df(G)
+    rel_io_degs_dict = Counter(G_df.rel)
+    rel_io_degs_list = list(rel_io_degs_dict.values())
+    G_rsp_dist = np.array(rel_io_degs_list) / len(G_df)
+    relation_entropy = entropy(G_rsp_dist)
+    return relation_entropy
 
 
 def calculate_eigenvalues(G):
@@ -46,7 +58,9 @@ def calculate_degree(G):
 
     :param G: input KG
     """
-    pass
+    G_df = net2df(G)
+    node_io_degs_dist = Counter(G_df.source) + Counter(G_df.target)
+    return dict(node_io_degs_dist)
 
 
 # NOTE: Should do for "flat" and non-flat network? Or mostly just non-flat

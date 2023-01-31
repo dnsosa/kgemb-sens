@@ -14,6 +14,8 @@ DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/dataset
 PCNET_DIR = DATA_DIR
 COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 
+# TODO: Check this
+
 
 def load_benchmark_data_three_parts(dataset, data_dir=DATA_DIR):
     base_dir = f"{data_dir}/{dataset}"

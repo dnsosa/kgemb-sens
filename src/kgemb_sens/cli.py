@@ -24,6 +24,8 @@ DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/dataset
 COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 
 
+# TODO: Update this
+
 @click.command()
 @click.option('--output_folder', 'out_dir')
 @click.option('--data_dir', 'data_dir', default=DATA_DIR)

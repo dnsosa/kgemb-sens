@@ -8,6 +8,8 @@ import numpy as np
 
 import pandas as pd
 
+from ..utilities import net2df
+
 
 def corrupt_rels_list(in_rels_list, corrupt_frac, whitelist_rels, all_possible_rels, SEED):
     """
@@ -40,7 +42,7 @@ def corrupt_relations(G, corrupt_frac, whitelist_rels, all_possible_rels, SEED=4
     :param all_possible_rels: all possible relations to sample from in the corruption process
     :param SEED: random seed
     """
-    G_df = nx.to_pandas_edgelist(G, edge_key="key")
+    G_df = net2df(G)
     rels_list = G_df["rel"]
     corrupted_rels_list = corrupt_rels_list(rels_list, corrupt_frac, whitelist_rels, all_possible_rels, SEED)
     G_df["rel"] = corrupted_rels_list

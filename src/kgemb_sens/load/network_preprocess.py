@@ -11,5 +11,4 @@ def preprocess_network_pipeline(G):
 
     :param G: input KG
     """
-
     return G
