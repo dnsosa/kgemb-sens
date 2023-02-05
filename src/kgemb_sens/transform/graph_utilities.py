@@ -18,6 +18,7 @@ def undirect_multidigraph(G):
     return G_undir
 
 
+# TODO: Check this implementation and if behavior is desired....
 def get_lcc(G):
     G_undir = undirect_multidigraph(G)
     lcc_nodes = max(nx.connected_components(G_undir), key=len)

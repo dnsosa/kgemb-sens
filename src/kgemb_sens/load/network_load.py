@@ -52,7 +52,7 @@ def load_benchmark_data_three_parts(dataset, data_dir=DATA_DIR):
 
 
 def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCNET_DIR,
-                   dengue_filter=False, dengue_expand_depth=1, clean_gnbr=True, do_get_lcc=True):
+                   dengue_filter=False, dengue_expand_depth=1, clean_gnbr=True, do_get_lcc=False):
 
     # Assumes it's already extracted somewhere
     drkg_df = pd.read_csv(f"{data_dir}/PYKEEN_DATASETS/drkg.tsv", sep="\t")
@@ -130,57 +130,6 @@ def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCN
         filtered_df.columns = ['source', 'edge', 'target']
 
     G = nx.from_pandas_edgelist(filtered_df, "source", "target", edge_attr=True, create_using=nx.MultiDiGraph())
-
-    if ("gg" in dataset) and dengue_filter:
-
-        dengue_genes = {'10417', '1107', '1524', '1669', '256987', '259197', '26289', '2634', '2992', '51161', '51225',
-                        '55799', '55809', '57156', '5797', '59084', '64222', '9254', '9402', '9580'}
-
-        G = undirect_multidigraph(G)
-        dengue_nodes_G = set(dengue_genes).intersection(set(G.nodes()))
-        # print(f"Dengue nodes: {dengue_nodes_G}")
-
-        dn_edges = []
-        for dengue_node in dengue_nodes_G:
-            visited_edges = list(nx.bfs_edges(G, source=dengue_node, depth_limit=dengue_expand_depth))
-
-            visited_edges_attrs = []
-            for e in visited_edges:
-                rel_data = G.get_edge_data(*e)
-                edge_rels = set([rel_data[k]['edge'] for k in rel_data.keys()])
-                for rel in edge_rels:
-                    visited_edges_attrs.append((e[0], e[1], rel))
-
-            dn_edges += visited_edges_attrs
-
-        dn_edges = list(set(dn_edges))
-        dn_edges = [(u, v, {'edge': r}) for u, v, r in dn_edges]
-        G_dengue = nx.MultiGraph()  # Note NOT directed
-        G_dengue.add_edges_from(dn_edges)
-
-        return G_dengue
-
-    if (dataset == "gnbr") and clean_gnbr:
-        print("\nCleaning the full GNBR network...")
-        print(f"Num. nodes before cleanup: {G.number_of_nodes()}")
-
-        G_degree_dict = dict(G.degree())
-
-        # Clean the drug list
-        banned_drugs = [node for node in G.nodes() if ("Compound::MESH" in node) or (("Compound" in node) and (G_degree_dict[node] > 500))]
-        G.remove_nodes_from(banned_drugs)
-        print(f"Removing {len(banned_drugs)} sketchy drugs.")
-
-        # Clean the disease list
-        banned_diseases = [node for node in G.nodes() if ("Disease" in node) and (G_degree_dict[node] > 1000)]
-        G.remove_nodes_from(banned_diseases)
-        print(f"Removing {len(banned_diseases)} sketchy diseases.")
-
-        print(f"Num. nodes after cleanup: {G.number_of_nodes()} .")
-
-    if do_get_lcc:
-        print("\nFinally, getting largest connected component.")
-        G = get_lcc(G)
 
     return G
 

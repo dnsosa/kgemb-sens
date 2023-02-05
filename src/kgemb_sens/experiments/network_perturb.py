@@ -4,25 +4,52 @@
 
 import pandas as pd
 import networkx as nx
+import numpy as np
+
+from collections import Counter
+
+from ..utilities import net2df
 
 
 # TODO: Implement this
 
 
-def add_self_loops(G):
+def add_self_loops(G, fill_frac, SEED):
     """
     Add self-loops to the graph to artificially but not meaningfully flatten ESP distribution.
 
     :param G: input KG
+    :param fill_frac: fraction of the self-loops needed to make an equal degree KG to include
+    :param SEED: random seed
     """
-    pass
+    np.random.seed(SEED)
+
+    G_df = net2df(G)
+    deg_dict = dict((Counter(G_df.source) + Counter(G_df.target)))
+    max_degree = max(deg_dict.values())
+
+    self_loops_to_add = []
+    for node, degree in deg_dict.items():
+        if degree < max_degree:
+            short_of_max = max_degree - degree
+            self_edge = (node, node, {"rel": "is"})
+            self_loops_to_add += ([self_edge] * short_of_max)
+
+    idxs = np.random.choice(np.arange(len(self_loops_to_add)), size=round(fill_frac * len(self_loops_to_add)))
+    self_loops_sample = [self_loops_to_add[idx] for idx in idxs]
+
+    # Convert back so NX can deal with the key ids
+    G_prime = nx.from_pandas_edgelist(G_df, edge_key="key", edge_attr="rel", create_using=nx.MultiDiGraph())
+    G_prime.add_edges_from(self_loops_sample)
 
 
-def remove_hubs(G):
+def remove_hubs(G, n_hubs, frac_nodes):
     """
     Remove hub nodes from the graph to artificially AND meaningfully flatten out ESP distribution.
 
     :param G: input KG
+    :param n_hubs: number of hubs to remove
+    :param frac_nodes: fraction of nodes to remove (remove in degree order)
     """
     pass
 
