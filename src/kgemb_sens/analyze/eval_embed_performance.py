@@ -14,8 +14,6 @@ from pykeen.models.predict import get_tail_prediction_df, get_head_prediction_df
 from kgemb_sens.analyze.metrics import calc_edge_input_statistics, calc_network_input_statistics, calc_output_statistics
 from kgemb_sens.transform.graph_utilities import undirect_multidigraph
 
-# TODO: Implement this
-
 
 def evaluate(G, task, setting, method, metric, n_neg_samples):
     """
@@ -26,9 +24,9 @@ def evaluate(G, task, setting, method, metric, n_neg_samples):
     :param setting: evaluation setting (T1: single edge reconstruct, T2: hidden test fraction)
     :param method: embedding method (RotatE, DistMult, etc.)
     :param metric: performance metric (MRR, AMRI, etc.)
-    :param m_neg_samples: number of negative samples
+    :param n_neg_samples: number of negative samples
     """
-    pass
+    pass  # This is now all taken care of in the CLI.
 
 
 def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subset,

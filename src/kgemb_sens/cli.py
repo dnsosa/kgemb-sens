@@ -19,6 +19,7 @@ from kgemb_sens.load.data_loaders import load_benchmark_data_three_parts, load_d
 from kgemb_sens.transform.contradiction_utilities import find_all_valid_negations
 from kgemb_sens.transform.graph_utilities import undirect_multidigraph, remove_E, filter_in_etype, randomize_edges, make_all_one_type, remove_hubs
 from kgemb_sens.transform.processing_pipeline import graph_processing_pipeline
+from kgemb_sens.utilities import retrieve_rel_whitelist
 
 DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
 COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
@@ -33,14 +34,11 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--pcnet_filter/--no-pcnet_filter', 'pcnet_filter', default=False)
 @click.option('--pcnet_dir', 'pcnet_dir', default=DATA_DIR)
 @click.option('--covidkg_dir', 'covidkg_dir', default=COVIDKG_DIR)
-@click.option('--dengue_filter/--no-dengue_filter', 'dengue_filter', default=False)
-@click.option('--dengue_expand_depth', 'dengue_expand_depth', default=1)
-@click.option('--remove_E/--no-remove_E', 'remove_E_filter', default=False)
-@click.option('--filter_in_antonyms/--no-filter_in_antonyms', 'filter_in_antonyms', default=False)
 @click.option('--randomize_relations/--no-randomize_relations', 'randomize_relations', default=False)
 @click.option('--single_relation/--no-single_relation', 'single_relation', default=False)
 @click.option('--hub_remove_thresh', 'hub_remove_thresh', default=float("inf"))
-@click.option('--val_test_frac', 'val_test_frac', default=1.0)
+@click.option('--eval_setting', 'eval_setting', default="single_edge")
+@click.option('--eval_task', 'eval_task', default='DrTDz')
 @click.option('--val_frac', 'val_frac', default=0.0)  # CHANGE THIS!
 @click.option('--vt_alpha', 'vt_alpha', default=0.0)
 @click.option('--test_min_edeg', 'test_min_edeg', default=0.0)
@@ -54,22 +52,15 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--prob_type', 'prob_type', default='degree')
 @click.option('--flatten_kg', 'flatten_kg', default=False)
 @click.option('--neg_completion_frac', 'neg_completion_frac', default=0.0)
-@click.option('--contradiction_frac', 'contradiction_frac', default=0.0)
-@click.option('--contra_remove_frac', 'contra_remove_frac', default=0.0)
 @click.option('--replace_edges/--no-replace_edges', 'replace_edges', default=True)
 @click.option('--MODE', 'MODE', default='contrasparsify')
-@click.option('--psl/--no-psl', 'psl', default=False)
-@click.option('--psl_contras/--no-psl_contras', 'psl_contras', default=False)
-@click.option('--full_prod/--no-full_prod', 'full_product', default=False)
 @click.option('--model_name', 'model_name', default='transe')
 @click.option('--n_epochs', 'n_epochs', default=200)
-@click.option('--repurposing_eval/--no-repurposing_eval', 'repurposing_evaluation', default=False)
 def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengue_filter, dengue_expand_depth,
          remove_E_filter, filter_in_antonyms, randomize_relations, single_relation, hub_remove_thresh,
-         val_test_frac, val_frac, vt_alpha, test_min_edeg, test_max_edeg, test_min_mnd, test_max_mnd,
-         sparsified_frac, alpha, n_resample, n_negatives, prob_type, flatten_kg, neg_completion_frac,
-         contradiction_frac, contra_remove_frac, replace_edges, MODE, psl, psl_contras, full_product,
-         model_name, n_epochs, repurposing_evaluation):
+         eval_setting, eval_task, val_frac, vt_alpha, test_min_edeg, test_max_edeg, test_min_mnd, test_max_mnd,
+         sparsified_frac, alpha, n_resample, n_negatives, prob_type, flatten_kg, replace_edges, MODE,
+         model_name, n_epochs):
     """Run main function."""
 
     SEED = 1005
@@ -77,6 +68,8 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
 
     print("In the CLI Main function. Seed is set. Imports are imported.")
     os.makedirs(out_dir, exist_ok=True)
+
+    val_test_frac = 1.0 if eval_setting == "single_edge" else 0.7
 
     params = {"dataset": dataset,
               "pcnet_filter": pcnet_filter,
@@ -120,27 +113,11 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
         G = load_benchmark_data_three_parts(dataset, data_dir)
     elif dataset in ["gnbr_gg", "gnbr_drdz", "gnbr_drg", "drugbank_drdz", "drugbank_drg", "string_gg", "gnbr", "hetionet"]:
         G = load_drkg_data(dataset, data_dir, pcnet_filter, pcnet_dir, dengue_filter, dengue_expand_depth)
-        # Declare the dataset's antonym pairs. TODO: Should this be somewhere else?
-        if dataset == "gnbr_drg":
-            antonyms = [("E+", "E-"), ("A+", "A-")]
-        elif dataset == "gnbr_drdz":
-            antonyms = [("T", "J")]
-        elif dataset == "gnbr":
-            antonyms = [("E+", "E-"), ("A+", "A-"), ("T", "J")]
-        elif dataset == "hetionet":
-            antonyms = [("DdG", "DuG"), ("CuG", "CdG")]  # TODO: Test Hetionet's antonyms
     elif dataset == "covid":
         G = load_covid_graph(covidkg_dir)
-        antonyms = [('increases', 'decreases'), ('positiveCorrelation', 'negativeCorrelation')]
 
     # Calculate the relevant whitelist if any
-    rel_whitelist = None
-    if repurposing_evaluation:
-        if "gnbr" in dataset:
-            rel_whitelist = {"T", "Pa"}
-        elif dataset == "hetionet":
-            rel_whitelist = {"CtD", "CpD"}
-    print(f"Relation whitelist: {rel_whitelist}")
+    rel_whitelist = retrieve_rel_whitelist(dataset, eval_task)
 
     # Optional pre-processing as controls/debugging
     dr_dz_whitelist_pairs = None
@@ -237,18 +214,11 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
         train_subset, test_subset, sparse_subset, new_contradictions, removed_contradictions = edge_divisions
         print("Now embedding results...")
 
-        if not psl:
-            # results_dict, run_id, head_pred_df, tail_pred_df = run_embed_pipeline(data_paths, i, params,
-            results_dict, run_id, test_ranks_df = run_embed_pipeline(data_paths, i, params, train_conditions_id,
-                                                                     G_out, test_subset, degree_dict=G_out_degree_dict,
-                                                                     G_undir=G_out_undir, rel_whitelist=rel_whitelist)
+        # results_dict, run_id, head_pred_df, tail_pred_df = run_embed_pipeline(data_paths, i, params,
+        results_dict, run_id, test_ranks_df = run_embed_pipeline(data_paths, i, params, train_conditions_id,
+                                                                 G_out, test_subset, degree_dict=G_out_degree_dict,
+                                                                 G_undir=G_out_undir, rel_whitelist=rel_whitelist)
 
-        else:
-            # results_dict, run_id, head_pred_df, tail_pred_df = run_psl_pipeline(data_paths, i, params,
-            results_dict, run_id = run_psl_pipeline(data_paths, i, params, train_conditions_id, G=G_out,
-                                                    test_edges=test_subset, train_edges=train_subset,
-                                                    out_dir=out_dir, degree_dict=G_out_degree_dict,
-                                                    G_undir=G_out_undir, antonyms=antonyms)
 
         # TODO: output embeddings from training
         # TODO: Doesn't make sense to keep reassigning this every loop. Create the run ID sooner
