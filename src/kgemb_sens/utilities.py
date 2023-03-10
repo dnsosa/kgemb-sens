@@ -27,16 +27,16 @@ def retrieve_rel_whitelist(dataset, task):
     """
     dataset_task_mapper = {
         "gnbr":
-            {"DrTDz": {"T", "Pa"},
-             "DrAG": {"blah", "blue"},
-             "GiG": {"test", "test"},
-             "Yes": {"no", "maybe"}
+            {"DrDz": {"T"},
+             "DrG": {"A+", "A-", "N"},  # TO DO: Note that can't use 'E' etc. because it's present in two subsets
+             "GG": {"W", "V+", "I", "H", "Rg"},
+             "DzG": {"U", "Ud", "J", "Y", "G", "X", "L"}
              },
         "hetionet":
-            {"DrTDz": {"T", "Pa"},
-             "DrAG": {"blah", "blue"},
-             "GiG": {"test", "test"},
-             "Yes": {"no", "maybe"}
+            {"DrDz": {"CtD"},
+             "DrG": {"CbG"},
+             "GG": {"GiG"},
+             "DzG": {"DaG"}
              },
     }
 
