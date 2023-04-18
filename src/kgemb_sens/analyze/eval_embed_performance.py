@@ -11,7 +11,7 @@ from collections import Counter
 from pykeen.pipeline import pipeline
 from pykeen.models.predict import get_tail_prediction_df, get_head_prediction_df
 
-from kgemb_sens.analyze.metrics import calc_edge_input_statistics, calc_network_input_statistics, calc_output_statistics
+from kgemb_sens.analyze.network_metrics import calc_edge_input_statistics, calc_network_input_statistics, calc_output_statistics
 from kgemb_sens.transform.graph_utilities import undirect_multidigraph
 
 

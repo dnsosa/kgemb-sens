@@ -2,7 +2,6 @@
 
 """Perturb the input KG to see how topology will affect performance."""
 
-import pandas as pd
 import networkx as nx
 import numpy as np
 

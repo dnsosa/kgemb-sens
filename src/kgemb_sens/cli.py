@@ -9,9 +9,9 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from kgemb_sens.analyze.embed import run_embed_pipeline
-from kgemb_sens.analyze.metrics import calc_network_input_statistics
-from kgemb_sens.load.data_loaders import load_benchmark_data_three_parts, load_drkg_data, load_covid_graph
+from kgemb_sens.analyze.eval_embed_performance import run_embed_pipeline
+from kgemb_sens.analyze.network_metrics import calc_network_input_statistics
+from kgemb_sens.load.network_load import load_benchmark_data_three_parts, load_drkg_data, load_covid_graph
 from kgemb_sens.transform.graph_utilities import undirect_multidigraph, remove_E, filter_in_etype, randomize_edges, make_all_one_type, remove_hubs
 from kgemb_sens.transform.processing_pipeline import graph_processing_pipeline
 from kgemb_sens.utilities import retrieve_rel_whitelist
