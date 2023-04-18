@@ -38,7 +38,7 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--rel_corruption_strength', 'rel_corrupt_strength', default=1)
 @click.option('--eval_setting', 'eval_setting', default="single_edge")
 @click.option('--eval_task', 'eval_task', default='DrDz')
-@click.option('--val_frac', 'val_frac', default=0.0)  # CHANGE THIS!
+@click.option('--val_frac', 'val_frac', default=None)  # CHANGE THIS!
 @click.option('--vt_alpha', 'vt_alpha', default=0.0)
 @click.option('--test_min_edeg', 'test_min_edeg', default=0.0)
 @click.option('--test_max_edeg', 'test_max_edeg', default=float("inf"))
@@ -67,7 +67,8 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, rando
     print("In the CLI Main function. Seed is set. Imports are imported.")
     os.makedirs(out_dir, exist_ok=True)
 
-    val_test_frac = 1.0 if eval_setting == "single_edge" else 0.7
+    if val_frac is None:
+        val_frac = 1.0 if eval_setting == "single_edge" else 0.7
 
     params = {"dataset": dataset,
               "pcnet_filter": pcnet_filter,
@@ -174,6 +175,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, rando
     for i in range(n_resample):
         print(f"\nSample {i}")
 
+        # TODO: Check if val_frac is being used here....
         data_paths, train_conditions_id, edge_divisions, G_out = graph_processing_pipeline(G, i, params, out_dir,
                                                                                            all_rels, SEED,
                                                                                            G_undir=G_undir,
