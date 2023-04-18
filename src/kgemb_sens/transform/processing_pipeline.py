@@ -15,8 +15,7 @@ from kgemb_sens.transform.graph_utilities import prob_dist, prob_dist_from_list,
 from kgemb_sens.utilities import good_round
 
 
-def graph_processing_pipeline(G, i, params, out_dir,
-                              all_valid_negations=None, edge_names=None, SEED=1, G_undir=None, antonyms=None,
+def graph_processing_pipeline(G, i, params, out_dir, edge_names=None, SEED=1, G_undir=None, antonyms=None,
                               dist_mat=None, degree_dict=None, in_val_test_subset=None, replace_edges=False,
                               test_min_edeg=0, test_max_edeg=float("inf"), test_min_mnd=0, test_max_mnd=float("inf"),
                               rel_whitelist=None, dr_dz_whitelist_pairs=None):
@@ -29,9 +28,6 @@ def graph_processing_pipeline(G, i, params, out_dir,
     found_one = False
     G_con = None
     sparsified_subset, new_contradictions, removed_contradictions = None, None, None
-
-    if (params["neg_completion_frac"] > 0) and (params["MODE"] != "sparsification"):
-        G = negative_completion(G, all_valid_negations, edge_names, params["neg_completion_frac"])
 
     edges = list(G.edges(data=True, keys=True))
     e_degs = np.array([edge_degree(G_undir, other_edge, degree_dict) for other_edge in edges])

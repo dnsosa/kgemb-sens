@@ -5,18 +5,13 @@
 import os
 
 import click
-import itertools
 import networkx as nx
 import numpy as np
 import pandas as pd
 
-from collections import Counter
-
 from kgemb_sens.analyze.embed import run_embed_pipeline
 from kgemb_sens.analyze.metrics import calc_network_input_statistics
-from kgemb_sens.analyze.psl import run_psl_pipeline
 from kgemb_sens.load.data_loaders import load_benchmark_data_three_parts, load_drkg_data, load_covid_graph
-from kgemb_sens.transform.contradiction_utilities import find_all_valid_negations
 from kgemb_sens.transform.graph_utilities import undirect_multidigraph, remove_E, filter_in_etype, randomize_edges, make_all_one_type, remove_hubs
 from kgemb_sens.transform.processing_pipeline import graph_processing_pipeline
 from kgemb_sens.utilities import retrieve_rel_whitelist
@@ -37,6 +32,10 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--randomize_relations/--no-randomize_relations', 'randomize_relations', default=False)
 @click.option('--single_relation/--no-single_relation', 'single_relation', default=False)
 @click.option('--hub_remove_thresh', 'hub_remove_thresh', default=float("inf"))
+@click.option('--topo_perturb_method', 'topo_perturb_method', default="self_loops")
+@click.option('--topo_perturb_strength', 'topo_perturb_strength', default=1)
+@click.option('--rel_corruption_method', 'rel_corrupt_method', default="corrupt")
+@click.option('--rel_corruption_strength', 'rel_corrupt_strength', default=1)
 @click.option('--eval_setting', 'eval_setting', default="single_edge")
 @click.option('--eval_task', 'eval_task', default='DrDz')
 @click.option('--val_frac', 'val_frac', default=0.0)  # CHANGE THIS!
@@ -51,13 +50,12 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--n_negatives', 'n_negatives', default=1)
 @click.option('--prob_type', 'prob_type', default='degree')
 @click.option('--flatten_kg', 'flatten_kg', default=False)
-@click.option('--neg_completion_frac', 'neg_completion_frac', default=0.0)
 @click.option('--replace_edges/--no-replace_edges', 'replace_edges', default=True)
 @click.option('--MODE', 'MODE', default='contrasparsify')
 @click.option('--model_name', 'model_name', default='transe')
 @click.option('--n_epochs', 'n_epochs', default=200)
-def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengue_filter, dengue_expand_depth,
-         remove_E_filter, filter_in_antonyms, randomize_relations, single_relation, hub_remove_thresh,
+def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, randomize_relations, single_relation,
+         hub_remove_thresh, topo_perturb_method, topo_perturb_strength, rel_corrupt_method, rel_corrupt_strength,
          eval_setting, eval_task, val_frac, vt_alpha, test_min_edeg, test_max_edeg, test_min_mnd, test_max_mnd,
          sparsified_frac, alpha, n_resample, n_negatives, prob_type, flatten_kg, replace_edges, MODE,
          model_name, n_epochs):
@@ -73,12 +71,15 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
 
     params = {"dataset": dataset,
               "pcnet_filter": pcnet_filter,
-              "remove_E_filter": remove_E_filter,
-              "filter_in_antonyms": filter_in_antonyms,
               "randomize_relations": randomize_relations,
               "single_relation": single_relation,
               "hub_remove_thresh": hub_remove_thresh,
-              "val_test_frac": val_test_frac,
+              "topo_perturb_method": topo_perturb_method,
+              "topo_perturb_strength": topo_perturb_strength,
+              "rel_corrupt_method": rel_corrupt_method,
+              "rel_corrupt_strength": rel_corrupt_strength,
+              "eval_setting": eval_setting,
+              "eval_task": eval_task,
               "val_frac": val_frac,
               "vt_alpha": vt_alpha,
               "test_min_edeg": test_min_edeg,
@@ -91,17 +92,10 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
               "n_negatives": n_negatives,
               "prob_type": prob_type,  # distance, degree
               "flatten_kg": flatten_kg,
-              "neg_completion_frac": neg_completion_frac, #TODO: NEED better sampling strategy I think. Randomized algorithm?
-              "contradiction_frac": contradiction_frac,
-              "contra_remove_frac": contra_remove_frac,
               "replace_edges": replace_edges,
               "MODE": MODE,  # "sparsification", "contrasparsify"
-              "psl": psl,
-              "psl_contras": psl_contras,
-              "full_product": full_product,
               "model_name": model_name,
-              "n_epochs": n_epochs,
-              "repurposing_evaluation": repurposing_evaluation}
+              "n_epochs": n_epochs}
 
     print("Running on these params:")
     print(params)
@@ -120,30 +114,46 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
     rel_whitelist = retrieve_rel_whitelist(dataset, eval_task)
 
     # Optional pre-processing as controls/debugging
-    dr_dz_whitelist_pairs = None
+    dr_dz_whitelist_pairs = None  # only used in the single relation condition
     if hub_remove_thresh is not None:
         G = remove_hubs(G, hub_size=hub_remove_thresh)
-    if remove_E_filter:
-        G = remove_E(G)
-    if filter_in_antonyms:
-        G = filter_in_etype(G, list(itertools.chain(*antonyms)))
     if randomize_relations:
         G = randomize_edges(G, rel_whitelist)
     if single_relation:
         G, dr_dz_whitelist_pairs = make_all_one_type(G, rel_whitelist)
 
+    # Pre-processing corruption experiments:
+    # First alter the topology
+    if topo_perturb_method == "self_loops":
+        G = add_self_loops(G, fill_frac=topo_perturb_strength, SEED=SEED)
+    elif topo_perturb_method == "remove_hubs":
+        G = remove_hubs(G, frac_nodes=topo_perturb_strength, SEED=SEED)  # TODO: implement
+    elif topo_perturb_method == "upsample_low_deg":
+        G = upsample_low_deg_triples(G, frac_triples=topo_perturb_strength, SEED=SEED)  # TODO: implement
+    elif topo_perturb_method == "degree_based_downsample":
+        G = degree_based_downsample(G, frac_triples=topo_perturb_strength, SEED=SEED)  # TODO: implement
+    else:
+        print(f"{topo_perturb_method} is an invalid topology perturbing method!")
+        return None
+
+    # Used for the distance matrix calculations and in the flattened case
     G_undir = undirect_multidigraph(G)
 
-    print("\nData load and network creation complete.")
-    all_valid_negations = []
+    all_results_list = []
     all_rels = set([r for _, _, r in G.edges(data='edge')])
 
-    if (MODE == "contrasparsify") and (neg_completion_frac > 0):
-        print("\n\nFinding all valid negations\n\n")
-        all_valid_negations = find_all_valid_negations(G)
-        print("All valid negations found.")
+    print("\nData load and network creation complete.")
 
-    all_results_list = []
+    # Then corrupt the relations
+    if rel_corrupt_method in {"corrupt", "flatten"}:
+        G = perturb_relations(G, rel_corrupt_strength,
+                              whitelist_rels=rel_whitelist,
+                              all_possible_rels=list(all_rels),
+                              perturb_method=rel_corrupt_method,
+                              SEED=SEED)
+    else:
+        print(f"{rel_corrupt_method} is an invalid relation corruption method!")
+        return None
 
     # Precompute distance matrix if requested because it's expensive
     if (prob_type == "distance") and (alpha != 0):
@@ -158,43 +168,13 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, dengu
     else:
         degree_dict = dict(G.degree())
 
+    # TODO: Need to double check this graph processing pipeline still working for me....
+    # TODO: What can be gutted for different kinds of topo corruptors.
     print("\n\nBeginning graph processing pipeline...")
     for i in range(n_resample):
         print(f"\nSample {i}")
 
-        # If pre-sparsification is desired
-        if MODE == "contrasparsify":
-            if sparsified_frac > 0:
-                print(f"I'm doing the pre-sparse!! Sparse frac = {sparsified_frac}")
-                params["MODE"] = "sparsification"
-                params["val_test_frac"] = 1  # sacrifice one triple for this shortcut
-                params["alpha"] = 1  # prefer to remove hubs
-                data_paths, train_conditions_id, edge_divisions, G = graph_processing_pipeline(G, i, params,
-                                                                                               out_dir,
-                                                                                               all_valid_negations,
-                                                                                               all_rels, SEED,
-                                                                                               G_undir=G_undir,
-                                                                                               antonyms=antonyms,
-                                                                                               dist_mat=dist_mat,
-                                                                                               degree_dict=degree_dict,
-                                                                                               replace_edges=replace_edges,
-                                                                                               test_min_edeg=test_min_edeg,
-                                                                                               test_max_edeg=test_max_edeg,
-                                                                                               test_min_mnd=test_min_mnd,
-                                                                                               test_max_mnd=test_max_mnd,
-                                                                                               rel_whitelist=rel_whitelist,
-                                                                                               dr_dz_whitelist_pairs=dr_dz_whitelist_pairs)
-
-                degree_dict = dict(G.degree())
-                G_undir = undirect_multidigraph(G)
-                # note: no dist_mat
-
-                params["alpha"] = alpha
-                params["MODE"] = "contrasparsify"
-                params["val_test_frac"] = val_test_frac
-
         data_paths, train_conditions_id, edge_divisions, G_out = graph_processing_pipeline(G, i, params, out_dir,
-                                                                                           all_valid_negations,
                                                                                            all_rels, SEED,
                                                                                            G_undir=G_undir,
                                                                                            antonyms=antonyms,

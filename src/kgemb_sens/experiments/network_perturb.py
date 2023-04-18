@@ -43,31 +43,35 @@ def add_self_loops(G, fill_frac, SEED):
     G_prime.add_edges_from(self_loops_sample)
 
 
-def remove_hubs(G, n_hubs, frac_nodes):
+def remove_hubs(G, frac_nodes, n_hubs=0, SEED=42):
     """
     Remove hub nodes from the graph to artificially AND meaningfully flatten out ESP distribution.
 
     :param G: input KG
-    :param n_hubs: number of hubs to remove
     :param frac_nodes: fraction of nodes to remove (remove in degree order)
+    :param n_hubs: number of hubs to remove
+    :param SEED: random seed
     """
     pass
 
 
-def upsample_low_deg_triples(G):
+def upsample_low_deg_triples(G, frac_triples, SEED=42):
     """
     Upsample low-degree triples by creating multi-edges to artificially but not meaningfully flatten out ESP dist.
 
     :param G: input KG
+    :param frac_triples: fraction of relations to upsample
+    :param SEED: random seed
     """
     pass
 
 
-def degree_based_downsample(G, SEED=42):
+def degree_based_downsample(G, frac_triples, SEED=42):
     """
     Downsample input KG based on degree to artificially AND meaningfully flatten out ESP distribution.
 
     :param G: input KG
+    :param frac_triples: fraction of relations to downsample
     :param SEED: random seed
     """
     pass
