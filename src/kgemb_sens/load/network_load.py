@@ -5,12 +5,9 @@
 import pandas as pd
 import networkx as nx
 
-from kgemb_sens.transform.graph_utilities import undirect_multidigraph, get_lcc
-
-
 # local data dir
-##data_dir="/Users/dnsosa/.data/pykeen/datasets"
-DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
+DATA_DIR = "/Users/dnsosa/.data/pykeen/datasets"
+##DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
 PCNET_DIR = DATA_DIR
 COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 
@@ -51,8 +48,7 @@ def load_benchmark_data_three_parts(dataset, data_dir=DATA_DIR):
     return G
 
 
-def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCNET_DIR,
-                   dengue_filter=False, dengue_expand_depth=1, clean_gnbr=True, do_get_lcc=False):
+def load_drkg_data(dataset, data_dir=DATA_DIR, pcnet_filter=False, pcnet_dir=PCNET_DIR):
 
     # Assumes it's already extracted somewhere
     drkg_df = pd.read_csv(f"{data_dir}/PYKEEN_DATASETS/drkg.tsv", sep="\t")

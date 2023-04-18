@@ -247,7 +247,7 @@ def make_all_one_type(G, rel_whitelist):
     return nx.MultiDiGraph(blah_edges), dr_dz_whitelist_pairs
 
 
-def remove_hubs(G, hub_size=500):
+def preprocess_remove_hubs(G, hub_size=500):
     degree_dict = dict(G.degree())
     large_deg_nodes = [node for node in degree_dict.keys() if degree_dict[node] > float(hub_size)]
     G2 = G.copy()

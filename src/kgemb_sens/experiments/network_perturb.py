@@ -31,14 +31,14 @@ def add_self_loops(G, fill_frac, SEED):
     for node, degree in deg_dict.items():
         if degree < max_degree:
             short_of_max = max_degree - degree
-            self_edge = (node, node, {"rel": "is"})
+            self_edge = (node, node, {"edge": "is"})
             self_loops_to_add += ([self_edge] * short_of_max)
 
     idxs = np.random.choice(np.arange(len(self_loops_to_add)), size=round(fill_frac * len(self_loops_to_add)))
     self_loops_sample = [self_loops_to_add[idx] for idx in idxs]
 
     # Convert back so NX can deal with the key ids
-    G_prime = nx.from_pandas_edgelist(G_df, edge_key="key", edge_attr="rel", create_using=nx.MultiDiGraph())
+    G_prime = nx.from_pandas_edgelist(G_df, edge_key="key", edge_attr="edge", create_using=nx.MultiDiGraph())
     G_prime.add_edges_from(self_loops_sample)
 
 
@@ -51,7 +51,7 @@ def remove_hubs(G, frac_nodes, n_hubs=0, SEED=42):
     :param n_hubs: number of hubs to remove
     :param SEED: random seed
     """
-    pass
+    pass # TODO: See implementation in transformation.graph_utilities
 
 
 def upsample_low_deg_triples(G, frac_triples, SEED=42):

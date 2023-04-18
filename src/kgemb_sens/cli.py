@@ -11,12 +11,14 @@ import pandas as pd
 
 from kgemb_sens.analyze.eval_embed_performance import run_embed_pipeline
 from kgemb_sens.analyze.network_metrics import calc_network_input_statistics
+from kgemb_sens.experiments.network_perturb import add_self_loops, remove_hubs, upsample_low_deg_triples, degree_based_downsample
 from kgemb_sens.load.network_load import load_benchmark_data_three_parts, load_drkg_data, load_covid_graph
-from kgemb_sens.transform.graph_utilities import undirect_multidigraph, remove_E, filter_in_etype, randomize_edges, make_all_one_type, remove_hubs
+from kgemb_sens.transform.graph_utilities import make_all_one_type, preprocess_remove_hubs, randomize_edges, undirect_multidigraph
 from kgemb_sens.transform.processing_pipeline import graph_processing_pipeline
 from kgemb_sens.utilities import retrieve_rel_whitelist
 
-DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
+#DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
+DATA_DIR = "/Users/dnsosa/.data/pykeen/datasets"
 COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 
 
@@ -107,7 +109,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, rando
     if dataset in ["nations", "umls", "countries", "kinships"]:
         G = load_benchmark_data_three_parts(dataset, data_dir)
     elif dataset in ["gnbr_gg", "gnbr_drdz", "gnbr_drg", "drugbank_drdz", "drugbank_drg", "string_gg", "gnbr", "hetionet"]:
-        G = load_drkg_data(dataset, data_dir, pcnet_filter, pcnet_dir, dengue_filter, dengue_expand_depth)
+        G = load_drkg_data(dataset, data_dir, pcnet_filter, pcnet_dir)
     elif dataset == "covid":
         G = load_covid_graph(covidkg_dir)
 
@@ -117,7 +119,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, rando
     # Optional pre-processing as controls/debugging
     dr_dz_whitelist_pairs = None  # only used in the single relation condition
     if hub_remove_thresh is not None:
-        G = remove_hubs(G, hub_size=hub_remove_thresh)
+        G = preprocess_remove_hubs(G, hub_size=hub_remove_thresh)
     if randomize_relations:
         G = randomize_edges(G, rel_whitelist)
     if single_relation:

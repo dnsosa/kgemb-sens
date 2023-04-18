@@ -10,7 +10,7 @@ from collections import Counter
 from scipy import stats
 from scipy.stats import entropy
 from kgemb_sens.transform.graph_utilities import edge_degree, undirect_multidigraph
-from kgemb_sens.analyze.network_metricfs_utils import calc_scale_free_stats
+from kgemb_sens.analyze.network_metrics_utils import calc_scale_free_stats
 
 from ..utilities import net2df
 

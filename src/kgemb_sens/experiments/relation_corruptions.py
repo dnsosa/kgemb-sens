@@ -19,6 +19,7 @@ def corrupt_rels_list(in_rels_list, corrupt_frac, whitelist_rels, all_possible_r
     :param all_possible_rels: all possible relations to sample from in the corruption process
     :param SEED: random seed
     """
+    # TODO: Emulate randomize_edges condition in graph_utilities?
     np.random.seed(SEED)
 
     out_list = in_rels_list.copy()
