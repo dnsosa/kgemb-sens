@@ -6,8 +6,8 @@ import pandas as pd
 import networkx as nx
 
 # local data dir
-DATA_DIR = "/Users/dnsosa/.data/pykeen/datasets"
-##DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
+##DATA_DIR = "/Users/dnsosa/.data/pykeen/datasets"
+DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
 PCNET_DIR = DATA_DIR
 COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 

@@ -18,8 +18,8 @@ from kgemb_sens.transform.graph_utilities import make_all_one_type, preprocess_r
 from kgemb_sens.transform.processing_pipeline import simplified_graph_processing_pipeline
 from kgemb_sens.utilities import retrieve_rel_whitelist
 
-#DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
-DATA_DIR = "/Users/dnsosa/.data/pykeen/datasets"
+DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
+#DATA_DIR = "/Users/dnsosa/.data/pykeen/datasets"
 COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 
 
