@@ -12,9 +12,10 @@ import pandas as pd
 from kgemb_sens.analyze.eval_embed_performance import run_embed_pipeline
 from kgemb_sens.analyze.network_metrics import calc_network_input_statistics
 from kgemb_sens.experiments.network_perturb import add_self_loops, remove_hubs, upsample_low_deg_triples, degree_based_downsample
+from kgemb_sens.experiments.relation_corruptions import perturb_relations
 from kgemb_sens.load.network_load import load_benchmark_data_three_parts, load_drkg_data, load_covid_graph
 from kgemb_sens.transform.graph_utilities import make_all_one_type, preprocess_remove_hubs, randomize_edges, undirect_multidigraph
-from kgemb_sens.transform.processing_pipeline import graph_processing_pipeline
+from kgemb_sens.transform.processing_pipeline import simplified_graph_processing_pipeline
 from kgemb_sens.utilities import retrieve_rel_whitelist
 
 #DATA_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/pykeen/datasets"
@@ -35,12 +36,13 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--single_relation/--no-single_relation', 'single_relation', default=False)
 @click.option('--hub_remove_thresh', 'hub_remove_thresh', default=float("inf"))
 @click.option('--topo_perturb_method', 'topo_perturb_method', default="self_loops")
-@click.option('--topo_perturb_strength', 'topo_perturb_strength', default=1)
+@click.option('--topo_perturb_strength', 'topo_perturb_strength', default=1.0)
 @click.option('--rel_corruption_method', 'rel_corrupt_method', default="corrupt")
-@click.option('--rel_corruption_strength', 'rel_corrupt_strength', default=1)
+@click.option('--rel_corruption_strength', 'rel_corrupt_strength', default=1.0)
 @click.option('--eval_setting', 'eval_setting', default="single_edge")
 @click.option('--eval_task', 'eval_task', default='DrDz')
-@click.option('--val_frac', 'val_frac', default=None)  # CHANGE THIS!
+@click.option('--val_test_frac', 'val_test_frac', default=None)
+@click.option('--val_frac', 'val_frac', default=0.0)  # CHANGE THIS!
 @click.option('--vt_alpha', 'vt_alpha', default=0.0)
 @click.option('--test_min_edeg', 'test_min_edeg', default=0.0)
 @click.option('--test_max_edeg', 'test_max_edeg', default=float("inf"))
@@ -53,13 +55,12 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--prob_type', 'prob_type', default='degree')
 @click.option('--flatten_kg', 'flatten_kg', default=False)
 @click.option('--replace_edges/--no-replace_edges', 'replace_edges', default=True)
-@click.option('--MODE', 'MODE', default='contrasparsify')
 @click.option('--model_name', 'model_name', default='transe')
 @click.option('--n_epochs', 'n_epochs', default=200)
 def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, randomize_relations, single_relation,
          hub_remove_thresh, topo_perturb_method, topo_perturb_strength, rel_corrupt_method, rel_corrupt_strength,
-         eval_setting, eval_task, val_frac, vt_alpha, test_min_edeg, test_max_edeg, test_min_mnd, test_max_mnd,
-         sparsified_frac, alpha, n_resample, n_negatives, prob_type, flatten_kg, replace_edges, MODE,
+         eval_setting, eval_task, val_frac, val_test_frac, vt_alpha, test_min_edeg, test_max_edeg,
+         test_min_mnd, test_max_mnd, sparsified_frac, alpha, n_resample, n_negatives, prob_type, flatten_kg, replace_edges,
          model_name, n_epochs):
     """Run main function."""
 
@@ -69,8 +70,8 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, rando
     print("In the CLI Main function. Seed is set. Imports are imported.")
     os.makedirs(out_dir, exist_ok=True)
 
-    if val_frac is None:
-        val_frac = 1.0 if eval_setting == "single_edge" else 0.7
+    if val_test_frac is None:
+        val_test_frac = 1.0 if eval_setting == "single_edge" else 0.7
 
     params = {"dataset": dataset,
               "pcnet_filter": pcnet_filter,
@@ -84,6 +85,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, rando
               "eval_setting": eval_setting,
               "eval_task": eval_task,
               "val_frac": val_frac,
+              "val_test_frac": val_test_frac,
               "vt_alpha": vt_alpha,
               "test_min_edeg": test_min_edeg,
               "test_max_edeg": test_max_edeg,
@@ -96,7 +98,6 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, rando
               "prob_type": prob_type,  # distance, degree
               "flatten_kg": flatten_kg,
               "replace_edges": replace_edges,
-              "MODE": MODE,  # "sparsification", "contrasparsify"
               "model_name": model_name,
               "n_epochs": n_epochs}
 
@@ -177,25 +178,18 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, rando
     for i in range(n_resample):
         print(f"\nSample {i}")
 
-        # TODO: Check if val_frac is being used here....
-        data_paths, train_conditions_id, edge_divisions, G_out = graph_processing_pipeline(G, i, params, out_dir,
-                                                                                           all_rels, SEED,
-                                                                                           G_undir=G_undir,
-                                                                                           antonyms=antonyms,
-                                                                                           dist_mat=dist_mat,
-                                                                                           degree_dict=degree_dict,
-                                                                                           replace_edges=replace_edges,
-                                                                                           test_min_edeg=test_min_edeg,
-                                                                                           test_max_edeg=test_max_edeg,
-                                                                                           test_min_mnd=test_min_mnd,
-                                                                                           test_max_mnd=test_max_mnd,
-                                                                                           rel_whitelist=rel_whitelist,
-                                                                                           dr_dz_whitelist_pairs=dr_dz_whitelist_pairs)
+        data_paths, train_conditions_id, edge_divisions, G_out = \
+            simplified_graph_processing_pipeline(G, i, params, out_dir, all_rels, SEED, G_undir=G_undir,
+                                                 antonyms=antonyms, dist_mat=dist_mat, degree_dict=degree_dict,
+                                                 replace_edges=replace_edges, test_min_edeg=test_min_edeg,
+                                                 test_max_edeg=test_max_edeg, test_min_mnd=test_min_mnd,
+                                                 test_max_mnd=test_max_mnd, rel_whitelist=rel_whitelist,
+                                                 dr_dz_whitelist_pairs=dr_dz_whitelist_pairs)
 
         G_out_undir = undirect_multidigraph(G_out)
         G_out_degree_dict = dict(G_out.degree())
 
-        train_subset, test_subset, sparse_subset, new_contradictions, removed_contradictions = edge_divisions
+        train_subset, test_subset = edge_divisions
         print("Now embedding results...")
 
         # results_dict, run_id, head_pred_df, tail_pred_df = run_embed_pipeline(data_paths, i, params,

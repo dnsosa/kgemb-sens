@@ -67,7 +67,7 @@ def perturb_relations(G, perturb_frac, whitelist_rels, all_possible_rels, flat_r
     """
     # Get list of relations
     G_df = net2df(G)
-    rels_list = G_df["rel"]
+    rels_list = G_df["edge"]
 
     # Perform perturbation on list of relations
     if perturb_method == "flatten":
@@ -76,6 +76,6 @@ def perturb_relations(G, perturb_frac, whitelist_rels, all_possible_rels, flat_r
         perturbed_rels_list = corrupt_rels_list(rels_list, perturb_frac, whitelist_rels, all_possible_rels, SEED)
 
     # Update the list of relations with the new perturbed list
-    G_df["rel"] = perturbed_rels_list
-    G_corrupt = nx.from_pandas_edgelist(G_df, edge_key="key", edge_attr="rel", create_using=nx.MultiDiGraph())
+    G_df["edge"] = perturbed_rels_list
+    G_corrupt = nx.from_pandas_edgelist(G_df, edge_key="key", edge_attr="edge", create_using=nx.MultiDiGraph())
     return G_corrupt

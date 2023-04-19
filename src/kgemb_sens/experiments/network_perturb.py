@@ -13,19 +13,20 @@ from ..utilities import net2df
 # TODO: Implement this
 
 
-def add_self_loops(G, fill_frac, SEED):
+def add_self_loops(G, fill_frac, SEED, upper_bound=100):
     """
     Add self-loops to the graph to artificially but not meaningfully flatten ESP distribution.
 
     :param G: input KG
     :param fill_frac: fraction of the self-loops needed to make an equal degree KG to include
     :param SEED: random seed
+    :param upper_bound: degree upper bound to inflate a node
     """
     np.random.seed(SEED)
 
     G_df = net2df(G)
     deg_dict = dict((Counter(G_df.source) + Counter(G_df.target)))
-    max_degree = max(deg_dict.values())
+    max_degree = min(max(deg_dict.values()), upper_bound)
 
     self_loops_to_add = []
     for node, degree in deg_dict.items():
@@ -40,6 +41,8 @@ def add_self_loops(G, fill_frac, SEED):
     # Convert back so NX can deal with the key ids
     G_prime = nx.from_pandas_edgelist(G_df, edge_key="key", edge_attr="edge", create_using=nx.MultiDiGraph())
     G_prime.add_edges_from(self_loops_sample)
+
+    return G_prime
 
 
 def remove_hubs(G, frac_nodes, n_hubs=0, SEED=42):
