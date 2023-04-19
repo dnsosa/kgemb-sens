@@ -50,7 +50,7 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--test_max_mnd', 'test_max_mnd', default=float("inf"))
 @click.option('--sparsified_frac', 'sparsified_frac', default=0.0)
 @click.option('--alpha', 'alpha', default=1.0)
-@click.option('--n_resample', 'n_resample', default=100)
+@click.option('--n_resample', 'n_resample', default=100)  # TODO: What's the deal with this?
 @click.option('--n_negatives', 'n_negatives', default=1)
 @click.option('--prob_type', 'prob_type', default='degree')
 @click.option('--flatten_kg', 'flatten_kg', default=False)
@@ -179,9 +179,9 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, rando
         print(f"\nSample {i}")
 
         data_paths, train_conditions_id, edge_divisions, G_out = \
-            simplified_graph_processing_pipeline(G, i, params, out_dir, all_rels, SEED, G_undir=G_undir,
-                                                 antonyms=antonyms, dist_mat=dist_mat, degree_dict=degree_dict,
-                                                 replace_edges=replace_edges, test_min_edeg=test_min_edeg,
+            simplified_graph_processing_pipeline(G, i, params, out_dir, SEED, G_undir=G_undir,
+                                                 dist_mat=dist_mat, degree_dict=degree_dict,
+                                                 test_min_edeg=test_min_edeg,
                                                  test_max_edeg=test_max_edeg, test_min_mnd=test_min_mnd,
                                                  test_max_mnd=test_max_mnd, rel_whitelist=rel_whitelist,
                                                  dr_dz_whitelist_pairs=dr_dz_whitelist_pairs)

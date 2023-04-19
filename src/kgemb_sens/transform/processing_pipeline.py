@@ -242,17 +242,17 @@ def graph_processing_pipeline(G, i, params, out_dir, edge_names=None, SEED=1, G_
     return (new_train_path, new_test_path), train_conditions_id, (train_subset, test_subset, sparsified_subset, new_contradictions, removed_contradictions), G_out
 
 
-def simplified_graph_processing_pipeline(G, i, params, out_dir, edge_names=None, SEED=1, G_undir=None, antonyms=None,
-                                         dist_mat=None, degree_dict=None, in_val_test_subset=None, replace_edges=False,
-                                         test_min_edeg=0, test_max_edeg=float("inf"), test_min_mnd=0, test_max_mnd=float("inf"),
-                                         rel_whitelist=None, dr_dz_whitelist_pairs=None):
+def simplified_graph_processing_pipeline(G, i, params, out_dir, SEED=1, G_undir=None, dist_mat=None, degree_dict=None,
+                                         in_val_test_subset=None, test_min_edeg=0, test_max_edeg=float("inf"),
+                                         test_min_mnd=0, test_max_mnd=float("inf"), rel_whitelist=None,
+                                         dr_dz_whitelist_pairs=None):
 
     if G_undir is None:
         G_undir = undirect_multidigraph(G)
 
     print(f"Starting iteration {i + 1}")
     c = 1
-    found_one = False
+    found_one = True
 
     edges = list(G.edges(data=True, keys=True))
     e_degs = np.array([edge_degree(G_undir, other_edge, degree_dict) for other_edge in edges])
