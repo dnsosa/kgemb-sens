@@ -252,7 +252,7 @@ def simplified_graph_processing_pipeline(G, i, params, out_dir, SEED=1, G_undir=
 
     print(f"Starting iteration {i + 1}")
     c = 1
-    found_one = True
+    found_one = False
 
     edges = list(G.edges(data=True, keys=True))
     e_degs = np.array([edge_degree(G_undir, other_edge, degree_dict) for other_edge in edges])
@@ -266,6 +266,7 @@ def simplified_graph_processing_pipeline(G, i, params, out_dir, SEED=1, G_undir=
 
     while not found_one:
 
+        found_one = True
         np.random.seed((i + 1) * c * SEED)
 
         if in_val_test_subset is None:
