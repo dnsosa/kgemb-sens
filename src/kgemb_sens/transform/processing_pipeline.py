@@ -388,7 +388,7 @@ def simplified_graph_processing_pipeline(G, i, params, out_dir, SEED=1, G_undir=
     #train_conditions_id = f"{params['MODE']}_alpha{params['alpha']}_probtype{params['prob_type']}_flat{params['flatten_kg']}_sparsefrac{params['sparsified_frac']}_negCompFrac{params['neg_completion_frac']}_contraFrac{params['contradiction_frac']}_contraRemFrac{params['contra_remove_frac']}_vtfrac{params['val_test_frac']}_vtalpha{params['vt_alpha']}"
     ##train_conditions_id = f"sparsefrac{params['sparsified_frac']}_contraFrac{params['contradiction_frac']}_contraRemFrac{params['contra_remove_frac']}_vtalpha{params['vt_alpha']}"
     ##train_conditions_id += f"_remEfilter{params['remove_E_filter']}_filtInAnto{params['filter_in_antonyms']}_randRelations{params['randomize_relations']}_singRelation{params['single_relation']}_hubRemThresh{params['hub_remove_thresh']}_testMinEdeg{params['test_min_edeg']}_testMaxEdeg{params['test_max_edeg']}_replaceEdges{params['replace_edges']}"
-    train_conditions_id = f"T{params['topo_perturb_method']}{params['topo_perturb_strength']}_R{params['rel_corruption_method']}{params['rel_corruption_strength']}_E{params['eval_task']}{params['eval_setting']}"
+    train_conditions_id = f"T{params['topo_perturb_method']}{params['topo_perturb_strength']}_R{params['rel_corrupt_method']}{params['rel_corrupt_strength']}_E{params['eval_task']}{params['eval_setting']}"
     os.makedirs(out_dir, exist_ok=True)
 
     new_test_path = f"{out_dir}/test_{train_conditions_id}.tsv"
