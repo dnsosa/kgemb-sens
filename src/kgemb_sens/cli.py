@@ -71,7 +71,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, rando
     os.makedirs(out_dir, exist_ok=True)
 
     if val_test_frac is None:
-        val_test_frac = 1.0 if eval_setting == "single_edge" else 0.7
+        val_test_frac = 1.0 if eval_setting == "single_edge" else 0.9
 
     params = {"dataset": dataset,
               "pcnet_filter": pcnet_filter,
