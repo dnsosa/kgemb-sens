@@ -64,6 +64,9 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subse
             num_epochs=params["n_epochs"],
             use_tqdm_batch=False,
         ),
+        optimizer_kwargs=dict(
+            lr=params["learning_rate"]
+        ),
         negative_sampler_kwargs=dict(
             num_negs_per_pos=params["n_negatives"]
         ),
@@ -171,6 +174,7 @@ def run_embed_pipeline(data_paths, i, params, train_conditions_id, G, test_subse
                     'Num_resamples': params["n_resample"],
                     'Num_negative_samples': params["n_negatives"],
                     'Num_epochs': params["n_epochs"],
+                    'Learning_rate': params["learning_rate"],
                     'Run': i,
                     'Run_ID': run_id,
                     'AMRI': result.metric_results.get_metric('adjusted_mean_rank_index'),

@@ -57,11 +57,12 @@ COVIDKG_DIR = "/oak/stanford/groups/rbaltman/dnsosa/KGEmbSensitivity/covid19kg"
 @click.option('--replace_edges/--no-replace_edges', 'replace_edges', default=True)
 @click.option('--model_name', 'model_name', default='transe')
 @click.option('--n_epochs', 'n_epochs', default=200)
+@click.option('--learning_rate', 'learning_rate', default=0.02)
 def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, randomize_relations, single_relation,
          hub_remove_thresh, topo_perturb_method, topo_perturb_strength, rel_corrupt_method, rel_corrupt_strength,
          eval_setting, eval_task, val_frac, val_test_frac, vt_alpha, test_min_edeg, test_max_edeg,
          test_min_mnd, test_max_mnd, sparsified_frac, alpha, n_resample, n_negatives, prob_type, flatten_kg, replace_edges,
-         model_name, n_epochs):
+         model_name, n_epochs, learning_rate):
     """Run main function."""
 
     SEED = 1005
@@ -99,7 +100,8 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, rando
               "flatten_kg": flatten_kg,
               "replace_edges": replace_edges,
               "model_name": model_name,
-              "n_epochs": n_epochs}
+              "n_epochs": n_epochs,
+              "learning_rate": learning_rate}
 
     print("Running on these params:")
     print(params)
