@@ -74,9 +74,9 @@ def graph_processing_pipeline(G, i, params, out_dir, edge_names=None, SEED=1, G_
             print(f"OVERALL: Num non-zero probs for selecting test: {len([p for p in probabilities if p > 0])}")
             val_test_subset_idx = list(np.random.choice(len(edges), val_test_set_size, replace=False, p=probabilities))
 
-            val_test_subset = []
-            for idx in val_test_subset_idx:
-                val_test_subset.append(edges[idx])
+            val_test_subset = [edges[idx] for idx in val_test_subset_idx]
+            #for idx in val_test_subset_idx:
+            #    val_test_subset.append(edges[idx])
 
         else:  # Especially for debugging
             val_test_subset = in_val_test_subset

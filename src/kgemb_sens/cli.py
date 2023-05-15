@@ -11,7 +11,7 @@ import pandas as pd
 
 from kgemb_sens.analyze.eval_embed_performance import run_embed_pipeline
 from kgemb_sens.analyze.network_metrics import calc_network_input_statistics
-from kgemb_sens.experiments.network_perturb import add_self_loops, remove_hubs, upsample_low_deg_triples, degree_based_downsample
+from kgemb_sens.experiments.network_perturb import add_self_loops, remove_hubs, upsample_low_deg_triples, downsample_high_deg_triples
 from kgemb_sens.experiments.relation_corruptions import perturb_relations
 from kgemb_sens.load.network_load import load_benchmark_data_three_parts, load_drkg_data, load_covid_graph
 from kgemb_sens.transform.graph_utilities import make_all_one_type, preprocess_remove_hubs, randomize_edges, undirect_multidigraph
@@ -135,9 +135,9 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, rando
     elif topo_perturb_method == "remove_hubs":
         G = remove_hubs(G, frac_nodes=topo_perturb_strength, SEED=SEED)  # TODO: implement
     elif topo_perturb_method == "upsample_low_deg":
-        G = upsample_low_deg_triples(G, frac_triples=topo_perturb_strength, SEED=SEED)  # TODO: implement
-    elif topo_perturb_method == "degree_based_downsample":
-        G = degree_based_downsample(G, frac_triples=topo_perturb_strength, SEED=SEED)  # TODO: implement
+        G = upsample_low_deg_triples(G, multiplier=topo_perturb_strength, SEED=SEED)
+    elif topo_perturb_method == "downsample_high_deg":
+        G = downsample_high_deg_triples(G, remaining_fraction=topo_perturb_strength, SEED=SEED)
     else:
         print(f"{topo_perturb_method} is an invalid topology perturbing method!")
         return None

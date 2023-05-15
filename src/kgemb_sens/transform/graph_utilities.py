@@ -7,6 +7,7 @@ import networkx as nx
 import numpy as np
 
 from kgemb_sens.utilities import good_round
+from scipy.stats import entropy
 
 
 def undirect_multidigraph(G):
@@ -257,8 +258,13 @@ def preprocess_remove_hubs(G, hub_size=500):
     return nx.MultiDiGraph(G2.edges(data=True))
 
 
+def avg_node_degree(edge, node_deg_dict):
+    u, v = edge[0], edge[1]
+    u_deg, v_deg = node_deg_dict[u], node_deg_dict[v]
+    return (u_deg + v_deg) / 2
 
 
-
-
-
+def entity_entropy(node_deg_dict, num_triples):
+    node_degs_list = list(node_deg_dict.values())
+    esp_dist = np.array(node_degs_list) / (2 * num_triples)
+    return entropy(esp_dist)
