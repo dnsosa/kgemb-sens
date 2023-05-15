@@ -137,7 +137,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, rando
     elif topo_perturb_method == "upsample_low_deg":
         G = upsample_low_deg_triples(G, multiplier=topo_perturb_strength, SEED=SEED)
     elif topo_perturb_method == "downsample_high_deg":
-        G = downsample_high_deg_triples(G, remaining_fraction=topo_perturb_strength, SEED=SEED)
+        G = downsample_high_deg_triples(G, remaining_fraction=float(1/topo_perturb_strength), SEED=SEED)
     else:
         print(f"{topo_perturb_method} is an invalid topology perturbing method!")
         return None

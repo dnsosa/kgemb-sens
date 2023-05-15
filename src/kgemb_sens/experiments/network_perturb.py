@@ -139,7 +139,7 @@ def upsample_low_deg_triples(G,
 def downsample_high_deg_triples(G,
                                 alpha=2,
                                 SEED=42,
-                                batch_size=5000,
+                                batch_size=1000,
                                 remaining_fraction=0.25):
     np.random.seed(SEED)
 
