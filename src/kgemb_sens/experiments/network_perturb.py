@@ -171,6 +171,8 @@ def downsample_high_deg_triples(G,
 
         # Calculate the probability distribution
         u_dist = (np.array(list(avg_node_degs_dict.values())) + 1) ** float(alpha)
+        # Replace NaNs with 0s
+        u_dist = np.nan_to_num(u_dist)
         p_dist = u_dist / np.sum(u_dist)
         sampled_triples = np.random.choice(len(p_dist), batch_size, replace=False, p=p_dist)
         sampled_triples_edges = [edge_list[idx] for idx in sampled_triples]
