@@ -133,7 +133,7 @@ def main(out_dir, data_dir, dataset, pcnet_filter, pcnet_dir, covidkg_dir, rando
     if topo_perturb_method == "self_loops":
         G = add_self_loops(G, fill_frac=topo_perturb_strength, SEED=SEED)
     elif topo_perturb_method == "remove_hubs":
-        G = remove_hubs(G, frac_nodes=topo_perturb_strength, SEED=SEED)  # TODO: implement
+        G = remove_hubs(G, hub_quantile=topo_perturb_strength)
     elif topo_perturb_method == "upsample_low_deg":
         G = upsample_low_deg_triples(G, multiplier=topo_perturb_strength, alpha=alpha, SEED=SEED)
     elif topo_perturb_method == "downsample_high_deg":

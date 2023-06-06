@@ -47,7 +47,7 @@ def add_self_loops(G, fill_frac, SEED, upper_bound=500):
     return G_prime
 
 
-def remove_hubs(G, frac_nodes, n_hubs=0, SEED=42):
+def remove_hubs(G, hub_quantile=0.9):
     """
     Remove hub nodes from the graph to artificially AND meaningfully flatten out ESP distribution.
 
@@ -56,7 +56,15 @@ def remove_hubs(G, frac_nodes, n_hubs=0, SEED=42):
     :param n_hubs: number of hubs to remove
     :param SEED: random seed
     """
-    pass # TODO: See implementation in transformation.graph_utilities
+    G_df = net2df(G)
+    deg_dict = dict((Counter(G_df.source) + Counter(G_df.target)))
+    hub_min_deg = np.quantile(list(deg_dict.values()), hub_quantile)
+    print(f"=====\nHub min degree: {hub_min_deg}=====")
+    G_prime = G.copy()
+    hubs = [node for node in deg_dict.keys() if deg_dict[node] > hub_min_deg]
+    G_prime.remove_nodes_from(hubs)
+
+    return G_prime
 
 
 def upsample_low_deg_triples(G,
